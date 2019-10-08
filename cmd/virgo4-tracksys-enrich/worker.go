@@ -10,7 +10,7 @@ import (
 // time to wait for inbound messages before doing something else
 var waitTimeout = 5 * time.Second
 
-func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan awssqs.Message, inQueue awssqs.QueueHandle, out1Queue awssqs.QueueHandle, out2Queue awssqs.QueueHandle ) {
+func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) {
 
    // keep a list of the messages queued so we can delete them once they are sent to SOLR
    queued := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT )
@@ -43,7 +43,7 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
          // add it to the queued list
          queued = append( queued, message )
          if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-            err := processesInboundBlock( id, aws, queued, inQueue, out1Queue, out2Queue )
+            err := processesInboundBlock( id, aws, queued, inQueue, outQueue )
             if err != nil {
                log.Fatal( err )
             }
@@ -62,7 +62,7 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
 
          // we timed out, probably best to send anything pending
          if blocksize != 0 {
-            err := processesInboundBlock( id, aws, queued, inQueue, out1Queue, out2Queue )
+            err := processesInboundBlock( id, aws, queued, inQueue, outQueue )
             if err != nil {
                log.Fatal( err )
             }
@@ -81,9 +81,9 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
    }
 }
 
-func processesInboundBlock( id int, aws awssqs.AWS_SQS, messages []awssqs.Message, inQueue awssqs.QueueHandle, out1Queue awssqs.QueueHandle, out2Queue awssqs.QueueHandle ) error {
+func processesInboundBlock( id int, aws awssqs.AWS_SQS, messages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) error {
 
-   opStatus, err := aws.BatchMessagePut( out1Queue, messages )
+   opStatus, err := aws.BatchMessagePut( outQueue, messages )
    if err != nil {
       return err
    }
@@ -91,19 +91,7 @@ func processesInboundBlock( id int, aws awssqs.AWS_SQS, messages []awssqs.Messag
    // check the operation results
    for ix, op := range opStatus {
       if op == false {
-         log.Printf( "WARNING: message %d failed to send to queue 1", ix )
-      }
-   }
-
-   opStatus, err = aws.BatchMessagePut( out2Queue, messages )
-   if err != nil {
-      return err
-   }
-
-   // check the operation results
-   for ix, op := range opStatus {
-      if op == false {
-         log.Printf( "WARNING: message %d failed to send to queue 2", ix )
+         log.Printf( "WARNING: message %d failed to send to queue", ix )
       }
    }
 

@@ -19,7 +19,7 @@ func main() {
 	cfg := LoadConfiguration()
 
 	// load our AWS_SQS helper object
-	aws, err := awssqs.NewAwsSqs( awssqs.AwsSqsConfig{ } )
+	aws, err := awssqs.NewAwsSqs( awssqs.AwsSqsConfig{ MessageBucketName: cfg.MessageBucketName } )
 	if err != nil {
 		log.Fatal( err )
 	}
@@ -30,12 +30,7 @@ func main() {
 		log.Fatal( err )
 	}
 
-	outQueue1Handle, err := aws.QueueHandle( cfg.OutQueue1Name )
-	if err != nil {
-		log.Fatal( err )
-	}
-
-	outQueue2Handle, err := aws.QueueHandle( cfg.OutQueue2Name )
+	outQueueHandle, err := aws.QueueHandle( cfg.OutQueueName )
 	if err != nil {
 		log.Fatal( err )
 	}
@@ -45,7 +40,7 @@ func main() {
 
 	// start workers here
 	for w := 1; w <= cfg.Workers; w++ {
-		go worker( w, cfg, aws, inboundMessageChan, inQueueHandle, outQueue1Handle, outQueue2Handle )
+		go worker( w, cfg, aws, inboundMessageChan, inQueueHandle, outQueueHandle )
 	}
 
     for {

@@ -8,13 +8,16 @@ import (
 
 // ServiceConfig defines all of the service configuration parameters
 type ServiceConfig struct {
-	InQueueName    string    // SQS queue name for inbound documents
-	OutQueue1Name  string    // SQS queue name for outbound documents
-	OutQueue2Name  string    // SQS queue name for outbound documents
-	PollTimeOut    int64     // the SQS queue timeout (in seconds)
+	InQueueName       string   // SQS queue name for inbound documents
+	OutQueueName      string   // SQS queue name for outbound documents
+	PollTimeOut       int64    // the SQS queue timeout (in seconds)
+	MessageBucketName string   // the bucket to use for large messages
 
-	WorkerQueueSize int      // the inbound message queue size to feed the workers
-	Workers         int      // the number of worker processes
+	ServiceEndpoint   string   // the URL of the tracksys endpoint
+	ServiceTimeout    int64    // service timeout (in seconds)
+
+	WorkerQueueSize   int      // the inbound message queue size to feed the workers
+	Workers           int      // the number of worker processes
 }
 
 func ensureSet(env string) string {
@@ -56,17 +59,25 @@ func LoadConfiguration() *ServiceConfig {
 
 	var cfg ServiceConfig
 
-	cfg.InQueueName = ensureSetAndNonEmpty( "VIRGO4_SQS_FORK_IN_QUEUE" )
-	cfg.OutQueue1Name = ensureSetAndNonEmpty( "VIRGO4_SQS_FORK_OUT_1_QUEUE" )
-	cfg.OutQueue2Name = ensureSetAndNonEmpty( "VIRGO4_SQS_FORK_OUT_2_QUEUE" )
-	cfg.PollTimeOut = int64( envToInt( "VIRGO4_SQS_FORK_QUEUE_POLL_TIMEOUT" ) )
-	cfg.WorkerQueueSize = envToInt( "VIRGO4_SQS_FORK_WORK_QUEUE_SIZE" )
-	cfg.Workers = envToInt( "VIRGO4_SQS_FORK_WORKERS" )
+	cfg.InQueueName = ensureSetAndNonEmpty( "VIRGO4_TRACKSYS_ENRICH_IN_QUEUE" )
+	cfg.OutQueueName = ensureSetAndNonEmpty( "VIRGO4_TRACKSYS_ENRICH_OUT_QUEUE" )
+	cfg.MessageBucketName = ensureSetAndNonEmpty( "VIRGO4_SQS_MESSAGE_BUCKET" )
+	cfg.PollTimeOut = int64( envToInt( "VIRGO4_TRACKSYS_ENRICH_QUEUE_POLL_TIMEOUT" ) )
+
+	cfg.ServiceEndpoint = ensureSetAndNonEmpty( "VIRGO4_TRACKSYS_ENRICH_SERVICE_URL" )
+	cfg.ServiceTimeout = int64( envToInt( "VIRGO4_TRACKSYS_ENRICH_SERVICE_TIMEOUT" ) )
+
+	cfg.WorkerQueueSize = envToInt( "VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE" )
+	cfg.Workers = envToInt( "VIRGO4_TRACKSYS_ENRICH_WORKERS" )
 
 	log.Printf("[CONFIG] InQueueName          = [%s]", cfg.InQueueName )
-	log.Printf("[CONFIG] OutQueue1Name        = [%s]", cfg.OutQueue1Name )
-	log.Printf("[CONFIG] OutQueue2Name        = [%s]", cfg.OutQueue2Name )
+	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName )
 	log.Printf("[CONFIG] PollTimeOut          = [%d]", cfg.PollTimeOut )
+	log.Printf("[CONFIG] MessageBucketName    = [%s]", cfg.MessageBucketName )
+
+	log.Printf("[CONFIG] ServiceEndpoint      = [%s]", cfg.ServiceEndpoint )
+	log.Printf("[CONFIG] ServiceTimeout       = [%d]", cfg.ServiceTimeout )
+
 	log.Printf("[CONFIG] WorkerQueueSize      = [%d]", cfg.WorkerQueueSize )
 	log.Printf("[CONFIG] Workers              = [%d]", cfg.Workers )
 
