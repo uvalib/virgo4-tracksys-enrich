@@ -14,7 +14,10 @@ type ServiceConfig struct {
 	MessageBucketName string   // the bucket to use for large messages
 
 	ServiceEndpoint   string   // the URL of the tracksys endpoint
-	ServiceTimeout    int64    // service timeout (in seconds)
+	ServiceTimeout    int      // service timeout (in seconds)
+	ApiDirectoryPath  string   // the path component of the published API
+	ApiDetailsPath    string   // the path component of the details API
+	CacheAge          int      // how frequently do we reload the cache (in seconds)
 
 	WorkerQueueSize   int      // the inbound message queue size to feed the workers
 	Workers           int      // the number of worker processes
@@ -65,7 +68,10 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.PollTimeOut = int64( envToInt( "VIRGO4_TRACKSYS_ENRICH_QUEUE_POLL_TIMEOUT" ) )
 
 	cfg.ServiceEndpoint = ensureSetAndNonEmpty( "VIRGO4_TRACKSYS_ENRICH_SERVICE_URL" )
-	cfg.ServiceTimeout = int64( envToInt( "VIRGO4_TRACKSYS_ENRICH_SERVICE_TIMEOUT" ) )
+	cfg.ServiceTimeout = envToInt( "VIRGO4_TRACKSYS_ENRICH_SERVICE_TIMEOUT" )
+	cfg.ApiDirectoryPath = "api/published"
+	cfg.ApiDetailsPath = "api/sirsi"
+	cfg.CacheAge = envToInt( "VIRGO4_TRACKSYS_ENRICH_CACHE_AGE" )
 
 	cfg.WorkerQueueSize = envToInt( "VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE" )
 	cfg.Workers = envToInt( "VIRGO4_TRACKSYS_ENRICH_WORKERS" )
@@ -77,6 +83,9 @@ func LoadConfiguration() *ServiceConfig {
 
 	log.Printf("[CONFIG] ServiceEndpoint      = [%s]", cfg.ServiceEndpoint )
 	log.Printf("[CONFIG] ServiceTimeout       = [%d]", cfg.ServiceTimeout )
+	log.Printf("[CONFIG] ApiDirectoryPath     = [%s]", cfg.ApiDirectoryPath )
+	log.Printf("[CONFIG] ApiDetailsPath       = [%s]", cfg.ApiDetailsPath )
+	log.Printf("[CONFIG] CacheAge             = [%d]", cfg.CacheAge )
 
 	log.Printf("[CONFIG] WorkerQueueSize      = [%d]", cfg.WorkerQueueSize )
 	log.Printf("[CONFIG] Workers              = [%d]", cfg.Workers )

@@ -35,12 +35,18 @@ func main() {
 		log.Fatal( err )
 	}
 
+	// load the cache
+	cache, err := NewCacheLoader( cfg )
+	if err != nil {
+		log.Fatal( err )
+	}
+
 	// create the record channel
 	inboundMessageChan := make( chan awssqs.Message, cfg.WorkerQueueSize )
 
 	// start workers here
 	for w := 1; w <= cfg.Workers; w++ {
-		go worker( w, cfg, aws, inboundMessageChan, inQueueHandle, outQueueHandle )
+		go worker( w, cfg, aws, cache, inboundMessageChan, inQueueHandle, outQueueHandle )
 	}
 
     for {

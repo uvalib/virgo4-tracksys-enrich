@@ -10,7 +10,7 @@ import (
 // time to wait for inbound messages before doing something else
 var waitTimeout = 5 * time.Second
 
-func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) {
+func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <- chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) {
 
    // keep a list of the messages queued so we can delete them once they are sent to SOLR
    queued := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT )
@@ -43,7 +43,7 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
          // add it to the queued list
          queued = append( queued, message )
          if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-            err := processesInboundBlock( id, aws, queued, inQueue, outQueue )
+            err := processesInboundBlock( id, aws, cache, queued, inQueue, outQueue )
             if err != nil {
                log.Fatal( err )
             }
@@ -62,7 +62,7 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
 
          // we timed out, probably best to send anything pending
          if blocksize != 0 {
-            err := processesInboundBlock( id, aws, queued, inQueue, outQueue )
+            err := processesInboundBlock( id, aws, cache, queued, inQueue, outQueue )
             if err != nil {
                log.Fatal( err )
             }
@@ -81,7 +81,15 @@ func worker( id int, config * ServiceConfig, aws awssqs.AWS_SQS, inbound <- chan
    }
 }
 
-func processesInboundBlock( id int, aws awssqs.AWS_SQS, messages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) error {
+func processesInboundBlock( id int, aws awssqs.AWS_SQS, cache CacheLoader, messages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle ) error {
+
+   //
+   for ix, _ := range messages {
+      err := enrichMessage( cache, messages[ ix ] )
+      if err != nil {
+         return err
+      }
+   }
 
    opStatus, err := aws.BatchMessagePut( outQueue, messages )
    if err != nil {
@@ -109,6 +117,33 @@ func processesInboundBlock( id int, aws awssqs.AWS_SQS, messages []awssqs.Messag
    }
 
    return nil
+}
+
+func enrichMessage( cache CacheLoader, message awssqs.Message ) error {
+
+   id := getMessageAttribute( message, "id" )
+   if len( id ) != 0 {
+      found, err := cache.Contains( id )
+      if err != nil {
+         return err
+      }
+
+      if found == true {
+         log.Printf( "INFO: located id %s in tracksys cache", id )
+      }
+   }
+
+   return nil
+}
+
+func getMessageAttribute( message awssqs.Message, attribute string ) string {
+
+   for _, a := range message.Attribs {
+      if a.Name == attribute {
+         return a.Value
+      }
+   }
+   return ""
 }
 
 //
