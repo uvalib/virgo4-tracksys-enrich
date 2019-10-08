@@ -8,10 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	//"regexp"
 	//"strconv"
-
 	//"github.com/antchfx/xmlquery"
 )
 
@@ -20,29 +18,29 @@ var retrySleepTime = 100 * time.Millisecond
 
 //var documentAddFailed = fmt.Errorf( "SOLR add failed" )
 
-func ( cl * cacheLoaderImpl ) protocolDirectory( url string ) ( []string, error ) {
+func (cl *cacheLoaderImpl) protocolDirectory(url string) ([]string, error) {
 
-	body, err := cl.httpGet( url )
+	body, err := cl.httpGet(url)
 	if err != nil {
-	   return nil, err
+		return nil, err
 	}
 
 	// split the body into a set of identifiers
-	tokens := strings.Split( string( body ), "," )
+	tokens := strings.Split(string(body), ",")
 
 	//for _, v := range tokens {
 	//	fmt.Printf("[%s]\n", v )
 	//}
 
-	log.Printf("Received directory of %d items", len( tokens ) )
+	log.Printf("Received directory of %d items", len(tokens))
 	return tokens, nil
 }
 
-func ( cl * cacheLoaderImpl ) httpGet( url string ) ( []byte, error ){
+func (cl *cacheLoaderImpl) httpGet(url string) ([]byte, error) {
 
 	//fmt.Printf( "%s\n", s.url )
 
-	req, err := http.NewRequest("GET", url, nil )
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -50,13 +48,13 @@ func ( cl * cacheLoaderImpl ) httpGet( url string ) ( []byte, error ){
 	//req.Header.Set("Content-Type", "application/xml" )
 	//req.Header.Set("Accept", "application/json" )
 
-	var response * http.Response
+	var response *http.Response
 	count := 0
 	for {
 		response, err = cl.httpClient.Do(req)
-		count ++
+		count++
 		if err != nil {
-			if cl.canRetry( err ) == false {
+			if cl.canRetry(err) == false {
 				return nil, err
 			}
 
@@ -65,10 +63,10 @@ func ( cl * cacheLoaderImpl ) httpGet( url string ) ( []byte, error ){
 				return nil, err
 			}
 
-			log.Printf("POST failed with error, retrying (%s)", err )
+			log.Printf("POST failed with error, retrying (%s)", err)
 
 			// sleep for a bit before retrying
-			time.Sleep( retrySleepTime )
+			time.Sleep(retrySleepTime)
 		} else {
 			// success, break
 			break
@@ -77,7 +75,7 @@ func ( cl * cacheLoaderImpl ) httpGet( url string ) ( []byte, error ){
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll( response.Body )
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -128,13 +126,13 @@ func ( cl * cacheLoaderImpl ) httpGet( url string ) ( []byte, error ){
 //}
 
 // examines the error and decides if if can be retried
-func ( cl * cacheLoaderImpl ) canRetry( err error ) bool {
+func (cl *cacheLoaderImpl) canRetry(err error) bool {
 
-	if strings.Contains( err.Error( ), "operation timed out" ) == true {
+	if strings.Contains(err.Error(), "operation timed out") == true {
 		return true
 	}
 
-	if strings.Contains( err.Error( ), "write: broken pipe" ) == true {
+	if strings.Contains(err.Error(), "write: broken pipe") == true {
 		return true
 	}
 
@@ -144,6 +142,7 @@ func ( cl * cacheLoaderImpl ) canRetry( err error ) bool {
 
 	return false
 }
+
 //
 // end of file
 //
