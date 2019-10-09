@@ -1,8 +1,7 @@
 package main
 
 import (
-	//"bytes"
-	//"fmt"
+
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,8 +15,6 @@ import (
 var maxHttpRetries = 3
 var retrySleepTime = 100 * time.Millisecond
 
-//var documentAddFailed = fmt.Errorf( "SOLR add failed" )
-
 func (cl *cacheLoaderImpl) protocolDirectory(url string) ([]string, error) {
 
 	body, err := cl.httpGet(url)
@@ -28,12 +25,19 @@ func (cl *cacheLoaderImpl) protocolDirectory(url string) ([]string, error) {
 	// split the body into a set of identifiers
 	tokens := strings.Split(string(body), ",")
 
-	//for _, v := range tokens {
-	//	fmt.Printf("[%s]\n", v )
-	//}
-
 	log.Printf("Received directory of %d items", len(tokens))
 	return tokens, nil
+}
+
+func (cl *cacheLoaderImpl) protocolDetails(url string) ([]byte, error) {
+
+	body, err := cl.httpGet(url)
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Printf("BODY: %s\n", body )
+	return body, err
 }
 
 func (cl *cacheLoaderImpl) httpGet(url string) ([]byte, error) {
@@ -51,7 +55,11 @@ func (cl *cacheLoaderImpl) httpGet(url string) ([]byte, error) {
 	var response *http.Response
 	count := 0
 	for {
+		start := time.Now()
 		response, err = cl.httpClient.Do(req)
+		duration := time.Since(start)
+		log.Printf("INFO: GET %s (elapsed %d ms)", url, duration.Milliseconds())
+
 		count++
 		if err != nil {
 			if cl.canRetry(err) == false {
@@ -63,7 +71,7 @@ func (cl *cacheLoaderImpl) httpGet(url string) ([]byte, error) {
 				return nil, err
 			}
 
-			log.Printf("POST failed with error, retrying (%s)", err)
+			log.Printf("ERROR: GET failed with error, retrying (%s)", err)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)

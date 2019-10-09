@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/patrickmn/go-cache"
+	"log"
 )
 
 // the cache contains a series of identifiers taken from an external system, no other content is cached and individual cache
@@ -37,8 +38,18 @@ func (ci *cacheImpl) Reload(ids []string) {
 
 	// add the ids to the local cache
 	for _, id := range ids {
-		ci.c.Set(id, "", cache.NoExpiration)
+
+		// Tracksys returns empty ID's and duplicate ID's so fix this here...
+		if len( id ) != 0 {
+			_, found := ci.c.Get(id)
+			if found == false {
+				//fmt.Printf("[%s]\n", id )
+				ci.c.Set(id, "", cache.NoExpiration)
+			}
+		}
 	}
+
+	log.Printf("Loaded cache with %d items", ci.c.ItemCount())
 }
 
 //

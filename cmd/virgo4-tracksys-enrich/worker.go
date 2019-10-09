@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,6 +10,9 @@ import (
 
 // time to wait for inbound messages before doing something else
 var waitTimeout = 5 * time.Second
+
+var errorNoIdentifier = fmt.Errorf("No identifier attribute located for document")
+
 
 func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
 
@@ -83,30 +87,41 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, messages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) error {
 
-	//
+	// enrich as much as possible, in the event of an error, dont process the document further
 	for ix, _ := range messages {
 		err := enrichMessage(cache, messages[ix])
 		if err != nil {
-			return err
+			log.Printf("ERROR: enrich failed for message %d (ignoring for now))", ix)
+//			return err
 		}
 	}
 
 	opStatus, err := aws.BatchMessagePut(outQueue, messages)
 	if err != nil {
-		return err
+		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+			return err
+		}
 	}
+
+	// we only delete the ones that completed successfully
+	deleteMessages := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT)
 
 	// check the operation results
 	for ix, op := range opStatus {
 		if op == false {
 			log.Printf("WARNING: message %d failed to send to queue", ix)
+		} else {
+			deleteMessages = append(deleteMessages, messages[ix])
 		}
 	}
 
-	// delete them all anyway
-	opStatus, err = aws.BatchMessageDelete(inQueue, messages)
+
+	// delete the ones that succeeded
+	opStatus, err = aws.BatchMessageDelete(inQueue, deleteMessages)
 	if err != nil {
-		return err
+		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+			return err
+		}
 	}
 
 	// check the operation results
@@ -116,7 +131,7 @@ func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, messag
 		}
 	}
 
-	return nil
+	return err
 }
 
 func enrichMessage(cache CacheLoader, message awssqs.Message) error {
@@ -128,9 +143,21 @@ func enrichMessage(cache CacheLoader, message awssqs.Message) error {
 			return err
 		}
 
+		// we have information about this item, pull it from Tracksys
 		if found == true {
-			log.Printf("INFO: located id %s in tracksys cache", id)
+			log.Printf("INFO: located id %s in tracksys cache, getting details", id)
+			tracksysDetails, err := cache.Lookup( id )
+			if err != nil {
+				return err
+			}
+			err = applyEnrichment( message, tracksysDetails )
+			if err != nil {
+				return err
+			}
 		}
+	} else {
+		log.Printf("ERROR: no identifier attribute located for document, no enrichment possible")
+		return errorNoIdentifier
 	}
 
 	return nil
