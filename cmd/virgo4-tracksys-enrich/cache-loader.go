@@ -63,6 +63,7 @@ func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 
 		// double check pattern
 		if cl.cacheStale() == true {
+			log.Printf("INFO: cache is stale, time to reload" )
 			err := cl.reload()
 			if err != nil {
 				return false, err
