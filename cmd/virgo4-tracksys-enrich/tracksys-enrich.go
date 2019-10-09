@@ -9,6 +9,12 @@ import (
     "github.com/uvalib/virgo4-sqs-sdk/awssqs"
 )
 
+// just made this up...
+var externalServiceTimeoutInSeconds = 15
+
+// FIXME
+var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
+
 //
 // Much of this code is based on the existing SOLRMark plugin to handle tracksys decoration. See more details:
 // https://github.com/uvalib/utilities/blob/master/bib/bin/solrmarc3/index_java/src/DlMixin.java
@@ -31,7 +37,7 @@ func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetai
    rights_wrapper_url_display         := extractRightsWrapperUrlDisplay( tracksysDetails )
    rights_wrapper_display             := extractRightsWrapperDisplay( tracksysDetails )
    pdf_url_display                    := extractPdfUrlDisplay( tracksysDetails )
-   policy_facet                       := extractPolicy( tracksysDetails )
+   policy_facets                      := extractPolicyFacets( tracksysDetails )
    despined_barcodes_display          := extractDespinedBarcodesDisplay( tracksysDetails )
 
    // build our additional tag data
@@ -50,12 +56,12 @@ func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetai
    additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_url_a", rights_wrapper_url_display ) )
    additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_a", rights_wrapper_display ) )
    additionalTags.WriteString( makeFieldTagSet( "pdf_url_a", pdf_url_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "policy_f_stored", policy_facet ) )
+   additionalTags.WriteString( makeFieldTagSet( "policy_f_stored", policy_facets ) )
    additionalTags.WriteString( makeFieldTagSet( "despined_barcodes_a", despined_barcodes_display ) )
 
    // tack it on the end of the document
    docEndTag := "</doc>"
-   log.Printf( "Enrich with [%s]", additionalTags.String() )
+   //log.Printf( "Enrich with [%s]", additionalTags.String() )
    additionalTags.WriteString( docEndTag )
    current := string( message.Payload )
    strings.Replace( current, docEndTag, additionalTags.String(), 1 )
@@ -115,8 +121,25 @@ func extractCallNumbers( tracksysDetails * TrackSysItemDetails ) []string {
 
 func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) []string {
 
-   // FIXME
-   return []string{}
+   urls := make( []string, 0, 10 )
+   for _, i := range tracksysDetails.Items {
+      if len( i.BackendIIIFManifestUrl ) != 0 {
+         urls = append(urls, i.BackendIIIFManifestUrl )
+      }
+   }
+
+   res := make( []string, 0, 10 )
+   httpClient := newHttpClient( externalServiceTimeoutInSeconds )
+   for _, i := range urls {
+      body, err := httpGet( i, httpClient )
+      if err == nil {
+         res = append(res, string( body ) )
+      } else {
+         log.Printf("ERROR: endpoint %s returns %s (ignoring)", i, err )
+      }
+   }
+
+   return res
 }
 
 func extractThumbnailUrlDisplay( tracksysDetails * TrackSysItemDetails ) []string {
@@ -157,10 +180,26 @@ func extractPdfUrlDisplay( tracksysDetails * TrackSysItemDetails ) []string {
    return res
 }
 
-func extractPolicy( tracksysDetails * TrackSysItemDetails ) []string {
+func extractPolicyFacets( tracksysDetails * TrackSysItemDetails ) []string {
 
-   // FIXME
-   return []string{}
+   res := make( []string, 0, 1 )
+   for _, i := range tracksysDetails.Items {
+      if len( i.Pid ) != 0 {
+         url := fmt.Sprintf( "%s/%s", rightsServiceEndpoint, i.Pid )
+         httpClient := newHttpClient( externalServiceTimeoutInSeconds )
+         body, err := httpGet( url, httpClient )
+         if err == nil {
+            if string( body ) != "public" {
+               res = append(res, string( body ) )
+            }
+            break
+         } else {
+            log.Printf("ERROR: endpoint %s returns %s (ignoring)", url, err )
+         }
+      }
+   }
+
+   return res
 }
 
 func extractDespinedBarcodesDisplay( tracksysDetails * TrackSysItemDetails ) []string {

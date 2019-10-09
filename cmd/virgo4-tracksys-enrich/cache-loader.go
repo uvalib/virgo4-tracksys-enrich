@@ -39,13 +39,8 @@ func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
 	loader.detailsUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDetailsPath)
 	loader.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
-	// configure the client
-	loader.httpClient = &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost: 5,
-		},
-		Timeout: time.Duration(config.ServiceTimeout) * time.Second,
-	}
+	// configure the http client
+	loader.httpClient = newHttpClient( config.ServiceTimeout )
 
 	// reload the cache
 	err := loader.reload()
