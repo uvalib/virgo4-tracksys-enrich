@@ -1,6 +1,8 @@
 package main
 
 import (
+   "bytes"
+   "encoding/xml"
    //"bytes"
    "fmt"
    "log"
@@ -32,7 +34,7 @@ func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetai
    additional_collection_facets       := extractAdditionalCollectionFacets( tracksysDetails )
    alternate_id_facets                := extractAlternateIdFacets( tracksysDetails )
    individual_call_number_display     := extractCallNumbers( tracksysDetails )
-   iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
+   //iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
    thumbnail_url_display              := extractThumbnailUrlDisplay( tracksysDetails )
    rights_wrapper_url_display         := extractRightsWrapperUrlDisplay( tracksysDetails )
    rights_wrapper_display             := extractRightsWrapperDisplay( tracksysDetails )
@@ -51,7 +53,7 @@ func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetai
    additionalTags.WriteString( makeFieldTagSet( "additional_collection_f_stored", additional_collection_facets ) )
    additionalTags.WriteString( makeFieldTagSet( "alternate_id_f_stored", alternate_id_facets ) )
    additionalTags.WriteString( makeFieldTagSet( "individual_call_number_a", individual_call_number_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "iiif_presentation_metadata_a", iiif_presentation_metadata_display ) )
+   //additionalTags.WriteString( makeFieldTagSet( "iiif_presentation_metadata_a", iiif_presentation_metadata_display ) )
    additionalTags.WriteString( makeFieldTagSet( "thumbnail_url_a", thumbnail_url_display ) )
    additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_url_a", rights_wrapper_url_display ) )
    additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_a", rights_wrapper_display ) )
@@ -64,7 +66,7 @@ func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetai
    //log.Printf( "Enrich with [%s]", additionalTags.String() )
    additionalTags.WriteString( docEndTag )
    current := string( message.Payload )
-   strings.Replace( current, docEndTag, additionalTags.String(), 1 )
+   current = strings.Replace( current, docEndTag, additionalTags.String(), 1 )
    message.Payload = []byte( current )
    return nil
 }
@@ -225,8 +227,15 @@ func makeFieldTagSet( name string, values []string ) string {
 }
 
 func makeFieldTagPair( name string, value string ) string {
-   return fmt.Sprintf( "<field name=\"%s\">%s</field>", name, value )
+   return fmt.Sprintf( "<field name=\"%s\">%s</field>", name, xmlEscapeText( value ) )
 }
+
+func xmlEscapeText( value string ) string {
+   var escaped bytes.Buffer
+   _ = xml.EscapeText( &escaped, []byte( value ) )
+   return escaped.String( )
+}
+
 //
 // end of file
 //
