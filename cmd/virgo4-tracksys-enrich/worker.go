@@ -13,7 +13,6 @@ var waitTimeout = 5 * time.Second
 
 var errorNoIdentifier = fmt.Errorf("No identifier attribute located for document")
 
-
 func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
 
 	// keep a list of the messages queued so we can delete them once they are sent to SOLR
@@ -85,18 +84,31 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, messages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) error {
+func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) error {
 
 	// enrich as much as possible, in the event of an error, dont process the document further
-	for ix, _ := range messages {
-		err := enrichMessage(cache, messages[ix])
+	for ix, _ := range inboundMessages {
+		err := enrichMessage(cache, inboundMessages[ix])
 		if err != nil {
-			log.Printf("ERROR: enrich failed for message %d (ignoring for now))", ix)
+			log.Printf("WARNING: enrich failed for message %d (ignoring)", ix)
 //			return err
 		}
 	}
 
-	opStatus, err := aws.BatchMessagePut(outQueue, messages)
+	//
+	// There is some magic here that I dont really like. The inboundMessages carry some hidden state information within them which
+	// indicates that the message is an 'oversize' one so there are corresponding S3 assets that need to be lifecycle managed.
+	//
+	// In order to work around this, we create a new block of inboundMessages for the outbound journey
+	//
+
+	outboundMessages := make( []awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT )
+
+	for ix, _ := range inboundMessages {
+		outboundMessages = append( outboundMessages, *contentClone( inboundMessages[ix] ) )
+	}
+
+	opStatus, err := aws.BatchMessagePut(outQueue, outboundMessages)
 	if err != nil {
 		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
 			return err
@@ -111,7 +123,7 @@ func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, messag
 		if op == false {
 			log.Printf("WARNING: message %d failed to send to queue", ix)
 		} else {
-			deleteMessages = append(deleteMessages, messages[ix])
+			deleteMessages = append(deleteMessages, inboundMessages[ix])
 		}
 	}
 
@@ -161,6 +173,16 @@ func enrichMessage(cache CacheLoader, message awssqs.Message) error {
 	}
 
 	return nil
+}
+
+// we need to clone the inbound messages and use them for outbound messages. Because there is some hidden state information
+// within a message. See the comment above
+func contentClone( message awssqs.Message ) * awssqs.Message {
+
+   newMessage := &awssqs.Message{}
+   newMessage.Attribs = message.Attribs
+   newMessage.Payload = message.Payload
+   return newMessage
 }
 
 func getMessageAttribute(message awssqs.Message, attribute string) string {
