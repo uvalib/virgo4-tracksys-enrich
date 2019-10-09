@@ -23,7 +23,7 @@ var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
 // https://github.com/uvalib/utilities/blob/master/bib/bin/solrmarc3/dl_augment.properties
 //
 
-func applyEnrichment(message awssqs.Message, tracksysDetails * TrackSysItemDetails ) error {
+func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDetails ) error {
 
    // extract the information from the tracksys structure
    format_facets                      := extractFormatFacets( tracksysDetails )

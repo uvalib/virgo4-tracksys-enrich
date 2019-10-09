@@ -88,7 +88,7 @@ func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, inboun
 
 	// enrich as much as possible, in the event of an error, dont process the document further
 	for ix, _ := range inboundMessages {
-		err := enrichMessage(cache, inboundMessages[ix])
+		err := enrichMessage(cache, &inboundMessages[ix])
 		if err != nil {
 			log.Printf("WARNING: enrich failed for message %d (ignoring)", ix)
 //			return err
@@ -146,9 +146,9 @@ func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, inboun
 	return err
 }
 
-func enrichMessage(cache CacheLoader, message awssqs.Message) error {
+func enrichMessage(cache CacheLoader, message * awssqs.Message) error {
 
-	id := getMessageAttribute(message, "id")
+	id := getMessageAttribute(*message, "id")
 	if len(id) != 0 {
 		found, err := cache.Contains(id)
 		if err != nil {
