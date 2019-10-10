@@ -14,9 +14,6 @@ import (
 // just made this up...
 var externalServiceTimeoutInSeconds = 15
 
-// FIXME
-var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
-
 // a SOLR limitation
 //var maxSolrFieldSize = 32765
 
@@ -26,24 +23,30 @@ var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
 // https://github.com/uvalib/utilities/blob/master/bib/bin/solrmarc3/dl_augment.properties
 //
 
-func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDetails ) error {
+func applyEnrichment(config *ServiceConfig, tracksysDetails * TrackSysItemDetails, message * awssqs.Message ) error {
 
    // extract the information from the tracksys structure
-   format_facets                      := extractFormatFacets( tracksysDetails )
-   feature_facets                     := extractFeatureFacets( tracksysDetails )
-   source_facets                      := extractSourceFacets( tracksysDetails )
-   marc_display_facets                := []string{"true"}
+   format_facets, _                      := extractFormatFacets( tracksysDetails )
+   feature_facets, _                     := extractFeatureFacets( tracksysDetails )
+   source_facets, _                      := extractSourceFacets( tracksysDetails )
+   marc_display_facets                   := []string{"true"}
 
-   additional_collection_facets       := extractAdditionalCollectionFacets( tracksysDetails )
-   alternate_id_facets                := extractAlternateIdFacets( tracksysDetails )
-   individual_call_number_display     := extractCallNumbers( tracksysDetails )
-   //iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
-   thumbnail_url_display              := extractThumbnailUrlDisplay( tracksysDetails )
-   rights_wrapper_url_display         := extractRightsWrapperUrlDisplay( tracksysDetails )
-   rights_wrapper_display             := extractRightsWrapperDisplay( tracksysDetails )
-   pdf_url_display                    := extractPdfUrlDisplay( tracksysDetails )
-   policy_facets                      := extractPolicyFacets( tracksysDetails )
-   despined_barcodes_display          := extractDespinedBarcodesDisplay( tracksysDetails )
+   additional_collection_facets, _       := extractAdditionalCollectionFacets( tracksysDetails )
+   alternate_id_facets, _                := extractAlternateIdFacets( tracksysDetails )
+   individual_call_number_display, _     := extractCallNumbers( tracksysDetails )
+   //iiif_presentation_metadata_display, err := extractIIIFManifest( tracksysDetails )
+   //if err != nil {
+   //   return err
+   //}
+   thumbnail_url_display, _              := extractThumbnailUrlDisplay( tracksysDetails )
+   rights_wrapper_url_display, _         := extractRightsWrapperUrlDisplay( tracksysDetails )
+   rights_wrapper_display, _             := extractRightsWrapperDisplay( tracksysDetails )
+   pdf_url_display, _                    := extractPdfUrlDisplay( tracksysDetails )
+   policy_facets, err                    := extractPolicyFacets( config.RightsEndpoint, tracksysDetails )
+   if err != nil {
+      return err
+   }
+   despined_barcodes_display, _          := extractDespinedBarcodesDisplay( tracksysDetails )
 
    // build our additional tag data
    var additionalTags strings.Builder
@@ -82,12 +85,12 @@ func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDet
    return nil
 }
 
-func extractFormatFacets( tracksysDetails * TrackSysItemDetails ) []string {
+func extractFormatFacets( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := []string{ "Online" }
-   return res
+   return res, nil
 }
 
-func extractFeatureFacets ( tracksysDetails * TrackSysItemDetails ) []string {
+func extractFeatureFacets ( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 5 )
    res = append(res, "availability" )
    res = append(res, "iiif" )
@@ -96,43 +99,43 @@ func extractFeatureFacets ( tracksysDetails * TrackSysItemDetails ) []string {
    if len( tracksysDetails.PdfServiceRoot ) != 0 {
       res = append(res, "pdf_service" )
    }
-   return res
+   return res, nil
 }
 
-func extractSourceFacets( tracksysDetails * TrackSysItemDetails ) []string {
+func extractSourceFacets( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := []string{ "UVA Library Digital Repository" }
-   return res
+   return res, nil
 }
 
-func extractAdditionalCollectionFacets( tracksysDetails * TrackSysItemDetails ) []string {
+func extractAdditionalCollectionFacets( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 1 )
    if len( tracksysDetails.Collection ) != 0 {
       res = append(res, tracksysDetails.Collection )
    }
-   return res
+   return res, nil
 }
 
-func extractAlternateIdFacets( tracksysDetails * TrackSysItemDetails ) []string {
+func extractAlternateIdFacets( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
       if len( i.Pid ) != 0 {
          res = append(res, i.Pid )
       }
    }
-   return res
+   return res, nil
 }
 
-func extractCallNumbers( tracksysDetails * TrackSysItemDetails ) []string {
+func extractCallNumbers( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
       if len( i.CallNumber ) != 0 {
          res = append(res, i.CallNumber )
       }
    }
-   return res
+   return res, nil
 }
 
-func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) []string {
+func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
 
    urls := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
@@ -148,57 +151,58 @@ func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) []string {
       if err == nil {
          res = append(res, string( body ) )
       } else {
-         log.Printf("ERROR: endpoint %s returns %s (ignoring)", i, err )
+         log.Printf("ERROR: endpoint %s returns %s", i, err )
+         return nil, err
       }
    }
 
-   return res
+   return res, nil
 }
 
-func extractThumbnailUrlDisplay( tracksysDetails * TrackSysItemDetails ) []string {
+func extractThumbnailUrlDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
       if len( i.ThumbnailUrl ) != 0 {
          res = append(res, i.ThumbnailUrl )
       }
    }
-   return res
+   return res, nil
 }
 
-func extractRightsWrapperUrlDisplay( tracksysDetails * TrackSysItemDetails ) []string {
+func extractRightsWrapperUrlDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
       if len( i.RightsWrapperUrl ) != 0 {
          res = append(res, i.RightsWrapperUrl )
       }
    }
-   return res
+   return res, nil
 }
 
-func extractRightsWrapperDisplay( tracksysDetails * TrackSysItemDetails ) []string {
+func extractRightsWrapperDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
       if len( i.RightsWrapperText ) != 0 {
          res = append(res, i.RightsWrapperText )
       }
    }
-   return res
+   return res, nil
 }
 
-func extractPdfUrlDisplay( tracksysDetails * TrackSysItemDetails ) []string {
+func extractPdfUrlDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
    res := make( []string, 0, 1 )
    if len( tracksysDetails.PdfServiceRoot ) != 0 {
       res = append(res, tracksysDetails.PdfServiceRoot )
    }
-   return res
+   return res, nil
 }
 
-func extractPolicyFacets( tracksysDetails * TrackSysItemDetails ) []string {
+func extractPolicyFacets( rightsUrl string, tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
 
    res := make( []string, 0, 1 )
    for _, i := range tracksysDetails.Items {
       if len( i.Pid ) != 0 {
-         url := fmt.Sprintf( "%s/%s", rightsServiceEndpoint, i.Pid )
+         url := fmt.Sprintf( "%s/%s", rightsUrl, i.Pid )
          httpClient := newHttpClient( externalServiceTimeoutInSeconds )
          body, err := httpGet( url, httpClient )
          if err == nil {
@@ -207,15 +211,16 @@ func extractPolicyFacets( tracksysDetails * TrackSysItemDetails ) []string {
             }
             break
          } else {
-            log.Printf("ERROR: endpoint %s returns %s (ignoring)", url, err )
+            log.Printf("ERROR: endpoint %s returns %s", url, err )
+            return nil, err
          }
       }
    }
 
-   return res
+   return res, nil
 }
 
-func extractDespinedBarcodesDisplay( tracksysDetails * TrackSysItemDetails ) []string {
+func extractDespinedBarcodesDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
 
    res := make( []string, 0, 10 )
    if tracksysDetails.Collection == "Gannon Collection" {
@@ -225,7 +230,7 @@ func extractDespinedBarcodesDisplay( tracksysDetails * TrackSysItemDetails ) []s
          }
       }
    }
-   return res
+   return res, nil
 }
 
 func xmlEncodeValues( values []string ) []string {

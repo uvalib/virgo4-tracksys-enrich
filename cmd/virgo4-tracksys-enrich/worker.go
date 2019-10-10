@@ -11,6 +11,8 @@ import (
 // time to wait for inbound messages before doing something else
 var waitTimeout = 5 * time.Second
 
+var emptyOpList = make([]awssqs.OpStatus, 0)
+
 var errorNoIdentifier = fmt.Errorf("No identifier attribute located for document")
 
 func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
@@ -46,9 +48,11 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			// add it to the queued list
 			queued = append(queued, message)
 			if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-				err := processesInboundBlock(id, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
-					log.Fatal(err)
+					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+						log.Fatal(err)
+					}
 				}
 
 				// reset the counts
@@ -65,9 +69,11 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 			// we timed out, probably best to send anything pending
 			if blocksize != 0 {
-				err := processesInboundBlock(id, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
-					log.Fatal(err)
+					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+						log.Fatal(err)
+					}
 				}
 
 				duration := time.Since(start)
@@ -84,14 +90,21 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) error {
+func processesInboundBlock(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ( []awssqs.OpStatus, error ) {
+
+	// keep a list of the ones that succeed/fail
+	finalStatus := make( []awssqs.OpStatus, len( inboundMessages ) )
+	enrichStatus := make( []awssqs.OpStatus, len( inboundMessages ) )
+
+	//log.Printf("%d records to process", len(inboundMessages))
 
 	// enrich as much as possible, in the event of an error, dont process the document further
 	for ix, _ := range inboundMessages {
-		err := enrichMessage(cache, &inboundMessages[ix])
-		if err != nil {
-			log.Printf("WARNING: enrich failed for message %d (ignoring)", ix)
-//			return err
+		err := enrichMessage(config, cache, &inboundMessages[ix])
+		if err == nil {
+			enrichStatus[ix] = true
+		} else {
+			log.Printf("WARNING: enrich failed for message %d (%s)", ix, err)
 		}
 	}
 
@@ -102,51 +115,75 @@ func processesInboundBlock(id int, aws awssqs.AWS_SQS, cache CacheLoader, inboun
 	// In order to work around this, we create a new block of inboundMessages for the outbound journey
 	//
 
-	outboundMessages := make( []awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT )
+	outboundMessages := make( []awssqs.Message, 0, len( inboundMessages ) )
 
 	for ix, _ := range inboundMessages {
-		outboundMessages = append( outboundMessages, *contentClone( inboundMessages[ix] ) )
+		// as long as the enrichment succeeded...
+		if enrichStatus[ ix ] == true {
+			outboundMessages = append(outboundMessages, *contentClone(inboundMessages[ix]))
+		}
 	}
 
-	opStatus, err := aws.BatchMessagePut(outQueue, outboundMessages)
+	//log.Printf("%d records to publish", len(outboundMessages))
+
+	putStatus, err := aws.BatchMessagePut(outQueue, outboundMessages)
 	if err != nil {
 		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
-			return err
+			return emptyOpList, err
+		}
+	}
+
+	// check the operation results
+	for ix, op := range putStatus {
+		if op == false {
+			log.Printf("WARNING: message %d failed to send to queue", ix)
+		}
+	}
+
+	// we need to construct an array of results based on the operations performed, enrich and a put to the queue
+	enrichErrors := 0
+	for ix, v := range enrichStatus {
+		finalStatus[ix] = true
+		if v == false {
+			finalStatus[ix] = false
+			enrichErrors++
+		} else {
+			if putStatus[ix - enrichErrors] == false {
+				finalStatus[ix] = false
+			}
 		}
 	}
 
 	// we only delete the ones that completed successfully
-	deleteMessages := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT)
+	deleteMessages := make([]awssqs.Message, 0, len( outboundMessages ) )
 
-	// check the operation results
-	for ix, op := range opStatus {
-		if op == false {
-			log.Printf("WARNING: message %d failed to send to queue", ix)
-		} else {
+	for ix, op := range finalStatus {
+		if op == true {
 			deleteMessages = append(deleteMessages, inboundMessages[ix])
 		}
 	}
 
+	//log.Printf("%d records to delete", len(deleteMessages))
 
 	// delete the ones that succeeded
-	opStatus, err = aws.BatchMessageDelete(inQueue, deleteMessages)
+	delStatus, err := aws.BatchMessageDelete(inQueue, deleteMessages)
 	if err != nil {
 		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
-			return err
+			return emptyOpList, err
 		}
 	}
 
-	// check the operation results
-	for ix, op := range opStatus {
+	// we will ignore delete failures for now because they will be tried again when the message is next processed
+	for ix, op := range delStatus {
 		if op == false {
 			log.Printf("WARNING: message %d failed to delete", ix)
 		}
 	}
 
-	return err
+	return finalStatus, err
 }
 
-func enrichMessage(cache CacheLoader, message * awssqs.Message) error {
+func enrichMessage(config *ServiceConfig, cache CacheLoader, message * awssqs.Message) error {
 
 	id := getMessageAttribute(*message, "id")
 	if len(id) != 0 {
@@ -162,7 +199,7 @@ func enrichMessage(cache CacheLoader, message * awssqs.Message) error {
 			if err != nil {
 				return err
 			}
-			err = applyEnrichment( message, tracksysDetails )
+			err = applyEnrichment( config, tracksysDetails, message )
 			if err != nil {
 				return err
 			}

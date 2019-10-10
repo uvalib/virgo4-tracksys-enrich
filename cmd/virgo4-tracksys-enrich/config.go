@@ -19,8 +19,10 @@ type ServiceConfig struct {
 	ApiDetailsPath   string // the path component of the details API
 	CacheAge         int    // how frequently do we reload the cache (in seconds)
 
-	WorkerQueueSize int // the inbound message queue size to feed the workers
-	Workers         int // the number of worker processes
+	RightsEndpoint   string // the endpoint for getting use policy (as part of the enrichment process)
+
+	WorkerQueueSize int     // the inbound message queue size to feed the workers
+	Workers         int     // the number of worker processes
 }
 
 func ensureSet(env string) string {
@@ -73,6 +75,8 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.ApiDetailsPath = "api/sirsi"
 	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
 
+	cfg.RightsEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_RIGHTS_URL")
+
 	cfg.WorkerQueueSize = envToInt("VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE")
 	cfg.Workers = envToInt("VIRGO4_TRACKSYS_ENRICH_WORKERS")
 
@@ -86,6 +90,8 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] ApiDirectoryPath     = [%s]", cfg.ApiDirectoryPath)
 	log.Printf("[CONFIG] ApiDetailsPath       = [%s]", cfg.ApiDetailsPath)
 	log.Printf("[CONFIG] CacheAge             = [%d]", cfg.CacheAge)
+
+	log.Printf("[CONFIG] RightsEndpoint       = [%s]", cfg.RightsEndpoint)
 
 	log.Printf("[CONFIG] WorkerQueueSize      = [%d]", cfg.WorkerQueueSize)
 	log.Printf("[CONFIG] Workers              = [%d]", cfg.Workers)
