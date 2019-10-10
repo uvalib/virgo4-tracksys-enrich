@@ -17,6 +17,9 @@ var externalServiceTimeoutInSeconds = 15
 // FIXME
 var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
 
+// a SOLR limitation
+var maxSolrFieldSize = 32765
+
 //
 // Much of this code is based on the existing SOLRMark plugin to handle tracksys decoration. See more details:
 // https://github.com/uvalib/utilities/blob/master/bib/bin/solrmarc3/index_java/src/DlMixin.java
@@ -34,7 +37,7 @@ func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDet
    additional_collection_facets       := extractAdditionalCollectionFacets( tracksysDetails )
    alternate_id_facets                := extractAlternateIdFacets( tracksysDetails )
    individual_call_number_display     := extractCallNumbers( tracksysDetails )
-   //iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
+   iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
    thumbnail_url_display              := extractThumbnailUrlDisplay( tracksysDetails )
    rights_wrapper_url_display         := extractRightsWrapperUrlDisplay( tracksysDetails )
    rights_wrapper_display             := extractRightsWrapperDisplay( tracksysDetails )
@@ -45,21 +48,29 @@ func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDet
    // build our additional tag data
    var additionalTags strings.Builder
 
-   additionalTags.WriteString( makeFieldTagSet( "format_f_stored", format_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "feature_f_stored", feature_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "source_f_stored", source_facets ) )
+   additionalTags.WriteString( makeFieldTagSet( "format_f_stored", xmlEncodeValues( format_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "feature_f_stored", xmlEncodeValues( feature_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "source_f_stored", xmlEncodeValues( source_facets ) ) )
 
-   additionalTags.WriteString( makeFieldTagSet( "marc_display_f_stored", marc_display_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "additional_collection_f_stored", additional_collection_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "alternate_id_f_stored", alternate_id_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "individual_call_number_a", individual_call_number_display ) )
-   //additionalTags.WriteString( makeFieldTagSet( "iiif_presentation_metadata_a", iiif_presentation_metadata_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "thumbnail_url_a", thumbnail_url_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_url_a", rights_wrapper_url_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_a", rights_wrapper_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "pdf_url_a", pdf_url_display ) )
-   additionalTags.WriteString( makeFieldTagSet( "policy_f_stored", policy_facets ) )
-   additionalTags.WriteString( makeFieldTagSet( "despined_barcodes_a", despined_barcodes_display ) )
+   additionalTags.WriteString( makeFieldTagSet( "marc_display_f_stored", xmlEncodeValues( marc_display_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "additional_collection_f_stored", xmlEncodeValues( additional_collection_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "alternate_id_f_stored", xmlEncodeValues( alternate_id_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "individual_call_number_a", xmlEncodeValues( individual_call_number_display ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "thumbnail_url_a", xmlEncodeValues( thumbnail_url_display ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_url_a", xmlEncodeValues( rights_wrapper_url_display ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "rights_wrapper_a", xmlEncodeValues( rights_wrapper_display ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "pdf_url_a", xmlEncodeValues( pdf_url_display ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "policy_f_stored", xmlEncodeValues( policy_facets ) ) )
+   additionalTags.WriteString( makeFieldTagSet( "despined_barcodes_a", xmlEncodeValues( despined_barcodes_display ) ) )
+
+   // a special case
+   buf := makeFieldTagSet( "iiif_presentation_metadata_a", xmlEncodeValues( iiif_presentation_metadata_display ) )
+   sz := len( buf )
+   if sz > maxSolrFieldSize {
+      log.Printf("WARNING: iiif_presentation_metadata_a field exceeds maximum size, ignoring. size %d", sz )
+   } else {
+      additionalTags.WriteString(buf)
+   }
 
    // tack it on the end of the document
    docEndTag := "</doc>"
@@ -217,20 +228,27 @@ func extractDespinedBarcodesDisplay( tracksysDetails * TrackSysItemDetails ) []s
    return res
 }
 
+func xmlEncodeValues( values []string ) []string {
+   for ix, _ := range values {
+      values[ix] = xmlEscape( values[ix])
+   }
+
+   return values
+}
+
 func makeFieldTagSet( name string, values []string ) string {
    var res strings.Builder
    for _, v := range values {
       res.WriteString( makeFieldTagPair( name, v))
    }
    return res.String()
-
 }
 
 func makeFieldTagPair( name string, value string ) string {
-   return fmt.Sprintf( "<field name=\"%s\">%s</field>", name, xmlEscapeText( value ) )
+   return fmt.Sprintf( "<field name=\"%s\">%s</field>", name, value )
 }
 
-func xmlEscapeText( value string ) string {
+func xmlEscape( value string ) string {
    var escaped bytes.Buffer
    _ = xml.EscapeText( &escaped, []byte( value ) )
    return escaped.String( )
