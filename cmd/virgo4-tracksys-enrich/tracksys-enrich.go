@@ -18,7 +18,7 @@ var externalServiceTimeoutInSeconds = 15
 var rightsServiceEndpoint = "http://rightsws.lib.virginia.edu:8089"
 
 // a SOLR limitation
-var maxSolrFieldSize = 32765
+//var maxSolrFieldSize = 32765
 
 //
 // Much of this code is based on the existing SOLRMark plugin to handle tracksys decoration. See more details:
@@ -37,7 +37,7 @@ func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDet
    additional_collection_facets       := extractAdditionalCollectionFacets( tracksysDetails )
    alternate_id_facets                := extractAlternateIdFacets( tracksysDetails )
    individual_call_number_display     := extractCallNumbers( tracksysDetails )
-   iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
+   //iiif_presentation_metadata_display := extractIIIFManifest( tracksysDetails )
    thumbnail_url_display              := extractThumbnailUrlDisplay( tracksysDetails )
    rights_wrapper_url_display         := extractRightsWrapperUrlDisplay( tracksysDetails )
    rights_wrapper_display             := extractRightsWrapperDisplay( tracksysDetails )
@@ -64,13 +64,13 @@ func applyEnrichment(message * awssqs.Message, tracksysDetails * TrackSysItemDet
    additionalTags.WriteString( makeFieldTagSet( "despined_barcodes_a", xmlEncodeValues( despined_barcodes_display ) ) )
 
    // a special case
-   buf := makeFieldTagSet( "iiif_presentation_metadata_a", xmlEncodeValues( iiif_presentation_metadata_display ) )
-   sz := len( buf )
-   if sz > maxSolrFieldSize {
-      log.Printf("WARNING: iiif_presentation_metadata_a field exceeds maximum size, ignoring. size %d", sz )
-   } else {
-      additionalTags.WriteString(buf)
-   }
+   //buf := makeFieldTagSet( "iiif_presentation_metadata_a", xmlEncodeValues( iiif_presentation_metadata_display ) )
+   //sz := len( buf )
+   //if sz > maxSolrFieldSize {
+   //   log.Printf("WARNING: iiif_presentation_metadata_a field exceeds maximum size, ignoring. size %d", sz )
+   //} else {
+   //   additionalTags.WriteString(buf)
+   //}
 
    // tack it on the end of the document
    docEndTag := "</doc>"
