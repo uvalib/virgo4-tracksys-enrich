@@ -11,9 +11,6 @@ import (
     "github.com/uvalib/virgo4-sqs-sdk/awssqs"
 )
 
-// just made this up...
-var externalServiceTimeoutInSeconds = 15
-
 // a SOLR limitation
 //var maxSolrFieldSize = 32765
 
@@ -34,7 +31,7 @@ func applyEnrichment(config *ServiceConfig, tracksysDetails * TrackSysItemDetail
    additional_collection_facets, _       := extractAdditionalCollectionFacets( tracksysDetails )
    alternate_id_facets, _                := extractAlternateIdFacets( tracksysDetails )
    individual_call_number_display, _     := extractCallNumbers( tracksysDetails )
-   //iiif_presentation_metadata_display, err := extractIIIFManifest( tracksysDetails )
+   //iiif_presentation_metadata_display, err := extractIIIFManifest( config, tracksysDetails )
    //if err != nil {
    //   return err
    //}
@@ -42,7 +39,7 @@ func applyEnrichment(config *ServiceConfig, tracksysDetails * TrackSysItemDetail
    rights_wrapper_url_display, _         := extractRightsWrapperUrlDisplay( tracksysDetails )
    rights_wrapper_display, _             := extractRightsWrapperDisplay( tracksysDetails )
    pdf_url_display, _                    := extractPdfUrlDisplay( tracksysDetails )
-   policy_facets, err                    := extractPolicyFacets( config.RightsEndpoint, tracksysDetails )
+   policy_facets, err                    := extractPolicyFacets( config, tracksysDetails )
    if err != nil {
       return err
    }
@@ -135,7 +132,7 @@ func extractCallNumbers( tracksysDetails * TrackSysItemDetails ) ( []string, err
    return res, nil
 }
 
-func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
+func extractIIIFManifest( config * ServiceConfig, tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
 
    urls := make( []string, 0, 10 )
    for _, i := range tracksysDetails.Items {
@@ -145,7 +142,7 @@ func extractIIIFManifest( tracksysDetails * TrackSysItemDetails ) ( []string, er
    }
 
    res := make( []string, 0, 10 )
-   httpClient := newHttpClient( externalServiceTimeoutInSeconds )
+   httpClient := newHttpClient( config.ServiceTimeout )
    for _, i := range urls {
       body, err := httpGet( i, httpClient )
       if err == nil {
@@ -197,13 +194,13 @@ func extractPdfUrlDisplay( tracksysDetails * TrackSysItemDetails ) ( []string, e
    return res, nil
 }
 
-func extractPolicyFacets( rightsUrl string, tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
+func extractPolicyFacets( config * ServiceConfig, tracksysDetails * TrackSysItemDetails ) ( []string, error ) {
 
    res := make( []string, 0, 1 )
    for _, i := range tracksysDetails.Items {
       if len( i.Pid ) != 0 {
-         url := fmt.Sprintf( "%s/%s", rightsUrl, i.Pid )
-         httpClient := newHttpClient( externalServiceTimeoutInSeconds )
+         url := fmt.Sprintf( "%s/%s", config.RightsEndpoint, i.Pid )
+         httpClient := newHttpClient( config.ServiceTimeout )
          body, err := httpGet( url, httpClient )
          if err == nil {
             if string( body ) != "public" {
