@@ -51,7 +51,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
-						log.Fatal(err)
+						fatalIfError(err)
 					}
 				}
 
@@ -72,7 +72,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
-						log.Fatal(err)
+						fatalIfError(err)
 					}
 				}
 

@@ -20,26 +20,18 @@ func main() {
 
 	// load our AWS_SQS helper object
 	aws, err := awssqs.NewAwsSqs(awssqs.AwsSqsConfig{MessageBucketName: cfg.MessageBucketName})
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatalIfError(err)
 
 	// get the queue handles from the queue name
 	inQueueHandle, err := aws.QueueHandle(cfg.InQueueName)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatalIfError(err)
 
 	outQueueHandle, err := aws.QueueHandle(cfg.OutQueueName)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatalIfError(err)
 
 	// load the cache
 	cache, err := NewCacheLoader(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatalIfError(err)
 
 	// create the record channel
 	inboundMessageChan := make(chan awssqs.Message, cfg.WorkerQueueSize)
@@ -53,9 +45,7 @@ func main() {
 
 		// wait for a batch of messages
 		messages, err := aws.BatchMessageGet(inQueueHandle, awssqs.MAX_SQS_BLOCK_COUNT, time.Duration(cfg.PollTimeOut)*time.Second)
-		if err != nil {
-			log.Fatal(err)
-		}
+		fatalIfError(err)
 
 		// did we receive any?
 		sz := len(messages)
