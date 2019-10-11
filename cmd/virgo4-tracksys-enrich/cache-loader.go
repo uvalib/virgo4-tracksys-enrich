@@ -40,7 +40,7 @@ func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
 	loader.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
 	// configure the http client
-	loader.httpClient = newHttpClient( config.ServiceTimeout )
+	loader.httpClient = newHttpClient( config.Workers, config.ServiceTimeout )
 
 	// reload the cache
 	err := loader.reload()

@@ -37,14 +37,14 @@ func (ci *cacheImpl) Reload(ids []string) {
 	ci.c.Flush()
 
 	// add the ids to the local cache
-	for _, id := range ids {
+	for ix, _ := range ids {
 
 		// Tracksys returns empty ID's and duplicate ID's so fix this here...
-		if len( id ) != 0 {
-			_, found := ci.c.Get(id)
+		if len( ids[ix] ) != 0 {
+			_, found := ci.c.Get(ids[ix])
 			if found == false {
-				//fmt.Printf("[%s]\n", id )
-				ci.c.Set(id, "", cache.NoExpiration)
+				//fmt.Printf("[%s]\n", ids[ix] )
+				ci.c.Set(ids[ix], 0, cache.NoExpiration)
 			}
 		}
 	}
@@ -60,7 +60,7 @@ func (ci *cacheImpl) Contains(id string) bool {
 	// lookup the id in the cache
 	_, found := ci.c.Get(id)
 	if found {
-		//log.Printf( "ID [%s] found in cache", id )
+		//log.Printf( "ID [%s] found", id )
 		return true
 	}
 

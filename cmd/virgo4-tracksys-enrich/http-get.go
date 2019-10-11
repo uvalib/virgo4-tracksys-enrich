@@ -1,6 +1,7 @@
 package main
 
 import (
+   "fmt"
    "io/ioutil"
    "log"
    "net/http"
@@ -11,11 +12,11 @@ import (
 var maxHttpRetries = 3
 var retrySleepTime = 100 * time.Millisecond
 
-func newHttpClient( timeout int ) * http.Client {
+func newHttpClient( maxConnections int, timeout int ) * http.Client {
 
    return &http.Client{
       Transport: &http.Transport{
-         MaxIdleConnsPerHost: 5,
+         MaxIdleConnsPerHost: maxConnections,
       },
       Timeout: time.Duration(timeout) * time.Second,
    }
@@ -57,20 +58,26 @@ func httpGet(url string, client * http.Client ) ([]byte, error) {
          // sleep for a bit before retrying
          time.Sleep(retrySleepTime)
       } else {
-         // success, break
-         break
+
+         defer response.Body.Close()
+
+         if response.StatusCode != http.StatusOK {
+            log.Printf("ERROR: GET failed with status %d", response.StatusCode)
+
+            body, _ := ioutil.ReadAll(response.Body)
+
+            return body, fmt.Errorf( "request returns HTTP %d", response.StatusCode )
+         } else {
+            body, err := ioutil.ReadAll(response.Body)
+            if err != nil {
+               return nil, err
+            }
+
+            //log.Printf( body )
+            return body, nil
+         }
       }
    }
-
-   defer response.Body.Close()
-
-   body, err := ioutil.ReadAll(response.Body)
-   if err != nil {
-      return nil, err
-   }
-
-   //log.Printf( body )
-   return body, nil
 }
 
 // examines the error and decides if it can be retried

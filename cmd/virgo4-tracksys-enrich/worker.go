@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -13,9 +12,10 @@ var waitTimeout = 5 * time.Second
 
 var emptyOpList = make([]awssqs.OpStatus, 0)
 
-var errorNoIdentifier = fmt.Errorf("No identifier attribute located for document")
-
 func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
+
+	// we use this to enrich each message as appropriate
+	enricher := NewEnricher( config )
 
 	// keep a list of the messages queued so we can delete them once they are sent to SOLR
 	queued := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT)
@@ -48,7 +48,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			// add it to the queued list
 			queued = append(queued, message)
 			if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
 						fatalIfError(err)
@@ -69,7 +69,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 			// we timed out, probably best to send anything pending
 			if blocksize != 0 {
-				_, err := processesInboundBlock(id, config, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
 						fatalIfError(err)
@@ -90,7 +90,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ( []awssqs.OpStatus, error ) {
+func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ( []awssqs.OpStatus, error ) {
 
 	// keep a list of the ones that succeed/fail
 	finalStatus := make( []awssqs.OpStatus, len( inboundMessages ) )
@@ -100,7 +100,7 @@ func processesInboundBlock(id int, config *ServiceConfig, aws awssqs.AWS_SQS, ca
 
 	// enrich as much as possible, in the event of an error, dont process the document further
 	for ix, _ := range inboundMessages {
-		err := enrichMessage(config, cache, &inboundMessages[ix])
+		err := enricher.Enrich(cache, &inboundMessages[ix])
 		if err == nil {
 			enrichStatus[ix] = true
 		} else {
@@ -183,35 +183,6 @@ func processesInboundBlock(id int, config *ServiceConfig, aws awssqs.AWS_SQS, ca
 	return finalStatus, err
 }
 
-func enrichMessage(config *ServiceConfig, cache CacheLoader, message * awssqs.Message) error {
-
-	id := getMessageAttribute(*message, "id")
-	if len(id) != 0 {
-		found, err := cache.Contains(id)
-		if err != nil {
-			return err
-		}
-
-		// we have information about this item, pull it from Tracksys
-		if found == true {
-			log.Printf("INFO: located id %s in tracksys cache, getting details", id)
-			tracksysDetails, err := cache.Lookup( id )
-			if err != nil {
-				return err
-			}
-			err = applyEnrichment( config, tracksysDetails, message )
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		log.Printf("ERROR: no identifier attribute located for document, no enrichment possible")
-		return errorNoIdentifier
-	}
-
-	return nil
-}
-
 // we need to clone the inbound messages and use them for outbound messages. Because there is some hidden state information
 // within a message. See the comment above
 func contentClone( message awssqs.Message ) * awssqs.Message {
@@ -220,16 +191,6 @@ func contentClone( message awssqs.Message ) * awssqs.Message {
    newMessage.Attribs = message.Attribs
    newMessage.Payload = message.Payload
    return newMessage
-}
-
-func getMessageAttribute(message awssqs.Message, attribute string) string {
-
-	for _, a := range message.Attribs {
-		if a.Name == attribute {
-			return a.Value
-		}
-	}
-	return ""
 }
 
 //
