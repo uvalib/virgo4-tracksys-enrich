@@ -12,7 +12,7 @@ import (
 // our interface
 type CacheLoader interface {
 	Contains(string) (bool, error)
-	Lookup(string) (* TrackSysItemDetails, error)
+	Lookup(string) (*TrackSysItemDetails, error)
 }
 
 // this is our actual implementation
@@ -25,7 +25,7 @@ type cacheLoaderImpl struct {
 	cacheLoaded time.Time     // when we last repopulated the cache
 	cacheMaxAge time.Duration // the maximum age of the cache
 
-	mu          sync.RWMutex  // coordinate cache reloads
+	mu sync.RWMutex // coordinate cache reloads
 }
 
 // Initialize our cache loader
@@ -40,7 +40,7 @@ func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
 	loader.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
 	// configure the http client
-	loader.httpClient = newHttpClient( config.Workers, config.ServiceTimeout )
+	loader.httpClient = newHttpClient(config.Workers, config.ServiceTimeout)
 
 	// reload the cache
 	err := loader.reload()
@@ -58,7 +58,7 @@ func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 
 		// double check pattern
 		if cl.cacheStale() == true {
-			log.Printf("INFO: cache is stale, time to reload" )
+			log.Printf("INFO: cache is stale, time to reload")
 			err := cl.reload()
 			if err != nil {
 				return false, err
@@ -69,14 +69,14 @@ func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 	return cl.cacheImpl.Contains(id), nil
 }
 
-func (cl *cacheLoaderImpl) Lookup(id string) (* TrackSysItemDetails, error) {
+func (cl *cacheLoaderImpl) Lookup(id string) (*TrackSysItemDetails, error) {
 
-	details, err := cl.protocolDetails( fmt.Sprintf( "%s/%s", cl.detailsUrl, id ) )
+	details, err := cl.protocolDetails(fmt.Sprintf("%s/%s", cl.detailsUrl, id))
 	if err != nil {
 		return nil, err
 	}
 
-	ts, err := cl.decodeTracksysPayload( details )
+	ts, err := cl.decodeTracksysPayload(details)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (cl *cacheLoaderImpl) cacheStale() bool {
 }
 
 // decode the Tracksys payload from the supplied payload
-func (cl *cacheLoaderImpl) decodeTracksysPayload(payload []byte) (* TrackSysItemDetails, error) {
+func (cl *cacheLoaderImpl) decodeTracksysPayload(payload []byte) (*TrackSysItemDetails, error) {
 
 	td := TrackSysItemDetails{}
 	err := json.Unmarshal(payload, &td)

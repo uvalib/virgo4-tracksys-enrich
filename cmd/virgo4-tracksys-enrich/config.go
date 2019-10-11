@@ -19,10 +19,10 @@ type ServiceConfig struct {
 	ApiDetailsPath   string // the path component of the details API
 	CacheAge         int    // how frequently do we reload the cache (in seconds)
 
-	RightsEndpoint   string // the endpoint for getting use policy (as part of the enrichment process)
+	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
 
-	WorkerQueueSize int     // the inbound message queue size to feed the workers
-	Workers         int     // the number of worker processes
+	WorkerQueueSize int // the inbound message queue size to feed the workers
+	Workers         int // the number of worker processes
 }
 
 func ensureSet(env string) string {

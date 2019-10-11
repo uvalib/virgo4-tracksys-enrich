@@ -40,7 +40,7 @@ func (ci *cacheImpl) Reload(ids []string) {
 	for ix, _ := range ids {
 
 		// Tracksys returns empty ID's and duplicate ID's so fix this here...
-		if len( ids[ix] ) != 0 {
+		if len(ids[ix]) != 0 {
 			_, found := ci.c.Get(ids[ix])
 			if found == false {
 				//fmt.Printf("[%s]\n", ids[ix] )

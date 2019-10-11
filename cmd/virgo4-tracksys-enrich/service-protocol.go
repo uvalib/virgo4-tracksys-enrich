@@ -30,7 +30,6 @@ func (cl *cacheLoaderImpl) protocolDetails(url string) ([]byte, error) {
 	return body, err
 }
 
-
 //
 // end of file
 //

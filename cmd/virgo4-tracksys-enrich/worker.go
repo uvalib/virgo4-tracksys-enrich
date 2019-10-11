@@ -15,7 +15,7 @@ var emptyOpList = make([]awssqs.OpStatus, 0)
 func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
 
 	// we use this to enrich each message as appropriate
-	enricher := NewEnricher( config )
+	enricher := NewEnricher(config)
 
 	// keep a list of the messages queued so we can delete them once they are sent to SOLR
 	queued := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT)
@@ -90,11 +90,11 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ( []awssqs.OpStatus, error ) {
+func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ([]awssqs.OpStatus, error) {
 
 	// keep a list of the ones that succeed/fail
-	finalStatus := make( []awssqs.OpStatus, len( inboundMessages ) )
-	enrichStatus := make( []awssqs.OpStatus, len( inboundMessages ) )
+	finalStatus := make([]awssqs.OpStatus, len(inboundMessages))
+	enrichStatus := make([]awssqs.OpStatus, len(inboundMessages))
 
 	//log.Printf("%d records to process", len(inboundMessages))
 
@@ -115,11 +115,11 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	// In order to work around this, we create a new block of inboundMessages for the outbound journey
 	//
 
-	outboundMessages := make( []awssqs.Message, 0, len( inboundMessages ) )
+	outboundMessages := make([]awssqs.Message, 0, len(inboundMessages))
 
 	for ix, _ := range inboundMessages {
 		// as long as the enrichment succeeded...
-		if enrichStatus[ ix ] == true {
+		if enrichStatus[ix] == true {
 			outboundMessages = append(outboundMessages, *contentClone(inboundMessages[ix]))
 		}
 	}
@@ -148,14 +148,14 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 			finalStatus[ix] = false
 			enrichErrors++
 		} else {
-			if putStatus[ix - enrichErrors] == false {
+			if putStatus[ix-enrichErrors] == false {
 				finalStatus[ix] = false
 			}
 		}
 	}
 
 	// we only delete the ones that completed successfully
-	deleteMessages := make([]awssqs.Message, 0, len( outboundMessages ) )
+	deleteMessages := make([]awssqs.Message, 0, len(outboundMessages))
 
 	for ix, op := range finalStatus {
 		if op == true {
@@ -185,12 +185,12 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 
 // we need to clone the inbound messages and use them for outbound messages. Because there is some hidden state information
 // within a message. See the comment above
-func contentClone( message awssqs.Message ) * awssqs.Message {
+func contentClone(message awssqs.Message) *awssqs.Message {
 
-   newMessage := &awssqs.Message{}
-   newMessage.Attribs = message.Attribs
-   newMessage.Payload = message.Payload
-   return newMessage
+	newMessage := &awssqs.Message{}
+	newMessage.Attribs = message.Attribs
+	newMessage.Payload = message.Payload
+	return newMessage
 }
 
 //
