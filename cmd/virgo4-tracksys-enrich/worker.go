@@ -120,7 +120,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	for ix, _ := range inboundMessages {
 		// as long as the enrichment succeeded...
 		if enrichStatus[ix] == true {
-			outboundMessages = append(outboundMessages, *contentClone(inboundMessages[ix]))
+			outboundMessages = append(outboundMessages, *inboundMessages[ix].ContentClone())
 		}
 	}
 
@@ -181,16 +181,6 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	}
 
 	return finalStatus, err
-}
-
-// we need to clone the inbound messages and use them for outbound messages. Because there is some hidden state information
-// within a message. See the comment above
-func contentClone(message awssqs.Message) *awssqs.Message {
-
-	newMessage := &awssqs.Message{}
-	newMessage.Attribs = message.Attribs
-	newMessage.Payload = message.Payload
-	return newMessage
 }
 
 //

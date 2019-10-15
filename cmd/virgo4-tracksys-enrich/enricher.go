@@ -50,8 +50,8 @@ func NewEnricher(config *ServiceConfig) Enricher {
 func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 
 	// extract the ID else we cannot do anything
-	id := e.getMessageAttribute(message, "id")
-	if len(id) != 0 {
+	id, found := message.GetAttribute("id")
+	if found == true {
 		found, err := cache.Contains(id)
 		if err != nil {
 			return err
@@ -309,16 +309,6 @@ func (e *enrichImpl) xmlEscape(value string) string {
 	var escaped bytes.Buffer
 	_ = xml.EscapeText(&escaped, []byte(value))
 	return escaped.String()
-}
-
-func (e *enrichImpl) getMessageAttribute(message *awssqs.Message, attribute string) string {
-
-	for _, a := range message.Attribs {
-		if a.Name == attribute {
-			return a.Value
-		}
-	}
-	return ""
 }
 
 //
