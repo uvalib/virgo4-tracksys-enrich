@@ -88,9 +88,10 @@ func (cl *cacheLoaderImpl) Lookup(id string) (*TrackSysItemDetails, error) {
 func (cl *cacheLoaderImpl) reload() error {
 
 	contents, err := cl.protocolDirectory(cl.directoryUrl)
-	if err != nil {
-		return err
-	}
+
+	// after discussions with Mike, we determined that failing when attempting to reload the cache is a fatal set of
+	// circumstances and we should not continue to process items
+	fatalIfError( err )
 
 	// reload the cache
 	cl.cacheImpl.Reload(contents)
