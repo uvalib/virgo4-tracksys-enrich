@@ -22,7 +22,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	var message awssqs.Message
 
 	blocksize := uint(0)
-	totalCount := uint(0)
+	count := uint(0)
 	start := time.Now()
 
 	for {
@@ -43,7 +43,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 			// update counts
 			blocksize++
-			totalCount++
+			count++
 
 			// add it to the queued list
 			queued = append(queued, message)
@@ -60,9 +60,9 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 				queued = queued[:0]
 			}
 
-			if totalCount%1000 == 0 {
+			if count%1000 == 0 {
 				duration := time.Since(start)
-				log.Printf("Worker %d: processed %d messages (%0.2f tps)", id, totalCount, float64(totalCount)/duration.Seconds())
+				log.Printf("Worker %d: processed %d messages (%0.2f tps)", id, count, float64(count)/duration.Seconds())
 			}
 
 		} else {
@@ -77,14 +77,15 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 				}
 
 				duration := time.Since(start)
-				log.Printf("Worker %d: processed %d messages (%0.2f tps)", id, totalCount, float64(totalCount)/duration.Seconds())
+				log.Printf("Worker %d: processed %d messages (%0.2f tps) (flushing)", id, count, float64(count)/duration.Seconds())
 
 				// reset the counts
 				blocksize = 0
 				queued = queued[:0]
 			}
 
-			// reset the time
+			// reset the metrics values
+			count = 0
 			start = time.Now()
 		}
 	}
@@ -104,7 +105,12 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 		if err == nil {
 			enrichStatus[ix] = true
 		} else {
-			log.Printf("WARNING: enrich failed for message %d (%s)", ix, err)
+			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
+			if found == false {
+				log.Printf("WARNING: enrich failed for message %d (%s)", ix, err)
+			} else {
+				log.Printf("WARNING: enrich failed for id %s (%s)", id, err)
+			}
 		}
 	}
 

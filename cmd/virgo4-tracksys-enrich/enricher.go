@@ -50,7 +50,7 @@ func NewEnricher(config *ServiceConfig) Enricher {
 func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 
 	// extract the ID else we cannot do anything
-	id, found := message.GetAttribute("id")
+	id, found := message.GetAttribute(awssqs.AttributeKeyRecordId)
 	if found == true {
 		found, err := cache.Contains(id)
 		if err != nil {
