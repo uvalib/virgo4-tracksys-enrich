@@ -57,16 +57,23 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 			return err
 		}
 
-		// we have information about this item, pull it from Tracksys
+		// tracksys contains information about this item
 		if found == true {
-			log.Printf("INFO: located id %s in tracksys cache, getting details", id)
-			trackSysDetails, err := cache.Lookup(id)
-			if err != nil {
-				return err
-			}
-			err = e.applyEnrichment(trackSysDetails, message)
-			if err != nil {
-				return err
+
+			// we have determined that we do not want to enrich certain classs of item
+			toEnrich := e.enrichableItem( message )
+			if toEnrich == true {
+				log.Printf("INFO: located id %s in tracksys cache, getting details", id)
+				trackSysDetails, err := cache.Lookup(id)
+				if err != nil {
+					return err
+				}
+				err = e.applyEnrichment(trackSysDetails, message)
+				if err != nil {
+					return err
+				}
+			} else {
+				log.Printf("INFO: id %s is a special item, ignoring it", id)
 			}
 		}
 	} else {
@@ -75,6 +82,20 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 	}
 
 	return nil
+}
+
+// there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times
+// out when we request them.
+func (e *enrichImpl) enrichableItem( message *awssqs.Message ) bool {
+
+	// serch for the "serials" facade field
+	facetTag := e.makeFieldTagPair( "pool_f_stored", "serials" )
+	if strings.Contains( string( message.Payload) , facetTag ) {
+		log.Printf("INFO: found %s in payload", facetTag )
+		return false
+	}
+
+	return true
 }
 
 func (e *enrichImpl) applyEnrichment(tracksysDetails *TrackSysItemDetails, message *awssqs.Message) error {
