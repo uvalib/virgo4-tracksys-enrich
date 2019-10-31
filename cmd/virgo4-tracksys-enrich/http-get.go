@@ -87,6 +87,10 @@ func canRetry(err error) bool {
 		return true
 	}
 
+	if strings.Contains(err.Error(), "Client.Timeout exceeded") == true {
+		return true
+	}
+
 	if strings.Contains(err.Error(), "write: broken pipe") == true {
 		return true
 	}
@@ -95,9 +99,9 @@ func canRetry(err error) bool {
 		return true
 	}
 
-	//if strings.Contains( err.Error( ), "network is down" ) == true {
-	//	return true
-	//}
+	if strings.Contains( err.Error( ), "network is down" ) == true {
+		return true
+	}
 
 	return false
 }
