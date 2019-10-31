@@ -102,9 +102,11 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	// enrich as much as possible, in the event of an error, dont process the document further
 	for ix, _ := range inboundMessages {
 		err := enricher.Enrich(cache, &inboundMessages[ix])
-		if err == nil {
-			enrichStatus[ix] = true
-		} else {
+
+		// for now, we still want to process records that failed enrichment
+		enrichStatus[ix] = true
+
+		if err != nil {
 			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
 			if found == false {
 				log.Printf("WARNING: enrich failed for message %d (%s)", ix, err)
