@@ -33,9 +33,8 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 		select {
 		case message = <-inbound:
 			arrived = true
-			break
+
 		case <-time.After(waitTimeout):
-			break
 		}
 
 		// we have an inbound message to process
@@ -100,7 +99,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	//log.Printf("%d records to process", len(inboundMessages))
 
 	// enrich as much as possible, in the event of an error, dont process the document further
-	for ix, _ := range inboundMessages {
+	for ix := range inboundMessages {
 		err := enricher.Enrich(cache, &inboundMessages[ix])
 
 		// for now, we still want to process records that failed enrichment
@@ -125,7 +124,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 
 	outboundMessages := make([]awssqs.Message, 0, len(inboundMessages))
 
-	for ix, _ := range inboundMessages {
+	for ix := range inboundMessages {
 		// as long as the enrichment succeeded...
 		if enrichStatus[ix] == true {
 			outboundMessages = append(outboundMessages, *inboundMessages[ix].ContentClone())

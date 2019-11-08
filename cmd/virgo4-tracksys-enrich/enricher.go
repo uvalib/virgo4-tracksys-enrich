@@ -61,7 +61,7 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 		if found == true {
 
 			// we have determined that we do not want to enrich certain classs of item
-			toEnrich := e.enrichableItem( message )
+			toEnrich := e.enrichableItem(message)
 			if toEnrich == true {
 				log.Printf("INFO: located id %s in tracksys cache, getting details", id)
 				trackSysDetails, err := cache.Lookup(id)
@@ -86,12 +86,12 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 
 // there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times
 // out when we request them.
-func (e *enrichImpl) enrichableItem( message *awssqs.Message ) bool {
+func (e *enrichImpl) enrichableItem(message *awssqs.Message) bool {
 
 	// serch for the "serials" facade field
-	facetTag := e.makeFieldTagPair( "pool_f_stored", "serials" )
-	if strings.Contains( string( message.Payload) , facetTag ) {
-		log.Printf("INFO: found %s in payload", facetTag )
+	facetTag := e.makeFieldTagPair("pool_f_stored", "serials")
+	if strings.Contains(string(message.Payload), facetTag) {
+		log.Printf("INFO: found %s in payload", facetTag)
 		return false
 	}
 
@@ -210,28 +210,28 @@ func (e *enrichImpl) extractCallNumbers(tracksysDetails *TrackSysItemDetails) ([
 	return res, nil
 }
 
-func (e *enrichImpl) extractIIIFManifest(tracksysDetails *TrackSysItemDetails) ([]string, error) {
-
-	urls := make([]string, 0, 10)
-	for _, i := range tracksysDetails.Items {
-		if len(i.BackendIIIFManifestUrl) != 0 {
-			urls = append(urls, i.BackendIIIFManifestUrl)
-		}
-	}
-
-	res := make([]string, 0, 10)
-	for _, i := range urls {
-		body, err := httpGet(i, e.httpClient)
-		if err == nil {
-			res = append(res, string(body))
-		} else {
-			log.Printf("ERROR: endpoint %s returns %s", i, err)
-			return nil, err
-		}
-	}
-
-	return res, nil
-}
+//func (e *enrichImpl) extractIIIFManifest(tracksysDetails *TrackSysItemDetails) ([]string, error) {
+//
+//	urls := make([]string, 0, 10)
+//	for _, i := range tracksysDetails.Items {
+//		if len(i.BackendIIIFManifestUrl) != 0 {
+//			urls = append(urls, i.BackendIIIFManifestUrl)
+//		}
+//	}
+//
+//	res := make([]string, 0, 10)
+//	for _, i := range urls {
+//		body, err := httpGet(i, e.httpClient)
+//		if err == nil {
+//			res = append(res, string(body))
+//		} else {
+//			log.Printf("ERROR: endpoint %s returns %s", i, err)
+//			return nil, err
+//		}
+//	}
+//
+//	return res, nil
+//}
 
 func (e *enrichImpl) extractThumbnailUrlDisplay(tracksysDetails *TrackSysItemDetails) ([]string, error) {
 	res := make([]string, 0, 10)
@@ -307,7 +307,7 @@ func (e *enrichImpl) extractDespinedBarcodesDisplay(tracksysDetails *TrackSysIte
 }
 
 func (e *enrichImpl) xmlEncodeValues(values []string) []string {
-	for ix, _ := range values {
+	for ix := range values {
 		values[ix] = e.xmlEscape(values[ix])
 	}
 
