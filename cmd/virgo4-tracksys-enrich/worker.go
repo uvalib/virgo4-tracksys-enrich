@@ -49,7 +49,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
 				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
-					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
 					}
 				}
@@ -70,7 +70,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			if blocksize != 0 {
 				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
-					if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
 					}
 				}
@@ -135,7 +135,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 
 	putStatus, err := aws.BatchMessagePut(outQueue, outboundMessages)
 	if err != nil {
-		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+		if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 			return emptyOpList, err
 		}
 	}
@@ -175,7 +175,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 	// delete the ones that succeeded
 	delStatus, err := aws.BatchMessageDelete(inQueue, deleteMessages)
 	if err != nil {
-		if err != awssqs.OneOrMoreOperationsUnsuccessfulError {
+		if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 			return emptyOpList, err
 		}
 	}
