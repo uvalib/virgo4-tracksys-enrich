@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// our interface
+// CacheLoader - our interface
 type CacheLoader interface {
 	Contains(string) (bool, error)
 	Lookup(string) (*TrackSysItemDetails, error)
@@ -28,7 +28,7 @@ type cacheLoaderImpl struct {
 	mu sync.RWMutex // coordinate cache reloads
 }
 
-// Initialize our cache loader
+// NewCacheLoader - the factory
 func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
 
 	// mock implementation here if necessary
@@ -47,7 +47,7 @@ func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
 	return loader, err
 }
 
-// lookup in the cache, refresh as necessary
+// Contains - lookup in the cache, refresh as necessary
 func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 
 	if cl.cacheStale() == true {
@@ -69,6 +69,7 @@ func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 	return cl.cacheImpl.Contains(id), nil
 }
 
+// Lookup - lookup an item in the cache
 func (cl *cacheLoaderImpl) Lookup(id string) (*TrackSysItemDetails, error) {
 
 	details, err := cl.protocolDetails(fmt.Sprintf("%s/%s", cl.detailsUrl, id))

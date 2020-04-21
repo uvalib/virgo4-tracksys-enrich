@@ -19,7 +19,7 @@ type cacheImpl struct {
 }
 
 //
-// factory
+// NewCache - the factory
 //
 func NewCache() Cache {
 

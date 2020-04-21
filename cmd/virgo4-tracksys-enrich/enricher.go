@@ -23,7 +23,7 @@ import (
 
 var errorNoIdentifier = fmt.Errorf("no identifier attribute located for document")
 
-// our interface
+// Enricher - the interface
 type Enricher interface {
 	Enrich(CacheLoader, *awssqs.Message) error
 }
@@ -34,7 +34,7 @@ type enrichImpl struct {
 	httpClient     *http.Client // our http client connection
 }
 
-// Initialize our SOLR connection
+// NewEnricher - the factory
 func NewEnricher(config *ServiceConfig) Enricher {
 
 	// mock implementation here if necessary
