@@ -17,6 +17,9 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	// we use this to enrich each message as appropriate
 	enricher := NewEnricher(config)
 
+	// we use this to rewrite each message as appropriate
+	rewriter := NewRewriter(config)
+
 	// keep a list of the messages queued so we can delete them once they are sent to SOLR
 	queued := make([]awssqs.Message, 0, awssqs.MAX_SQS_BLOCK_COUNT)
 	var message awssqs.Message
@@ -47,7 +50,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			// add it to the queued list
 			queued = append(queued, message)
 			if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, rewriter, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
@@ -68,7 +71,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 			// we timed out, probably best to send anything pending
 			if blocksize != 0 {
-				_, err := processesInboundBlock(enricher, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, rewriter, aws, cache, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
@@ -90,20 +93,17 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ([]awssqs.OpStatus, error) {
+func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ([]awssqs.OpStatus, error) {
 
 	// keep a list of the ones that succeed/fail
 	finalStatus := make([]awssqs.OpStatus, len(inboundMessages))
-	enrichStatus := make([]awssqs.OpStatus, len(inboundMessages))
+	processStatus := make([]awssqs.OpStatus, len(inboundMessages))
 
 	//log.Printf("%d records to process", len(inboundMessages))
 
-	// enrich as much as possible, in the event of an error, dont process the document further
+	// enrich/rewrite as much as possible, in the event of an error, just press on
 	for ix := range inboundMessages {
 		err := enricher.Enrich(cache, &inboundMessages[ix])
-
-		// for now, we still want to process records that failed enrichment
-		enrichStatus[ix] = true
 
 		if err != nil {
 			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
@@ -113,6 +113,19 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 				log.Printf("WARNING: enrich failed for id %s (%s)", id, err)
 			}
 		}
+
+		err = rewriter.Rewrite(&inboundMessages[ix])
+		if err != nil {
+			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
+			if found == false {
+				log.Printf("WARNING: rewrite failed for message %d (%s)", ix, err)
+			} else {
+				log.Printf("WARNING: rewrite failed for id %s (%s)", id, err)
+			}
+		}
+
+		// for now, we still want to process records that failed enrichment/rewriting
+		processStatus[ix] = true
 	}
 
 	//
@@ -126,7 +139,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 
 	for ix := range inboundMessages {
 		// as long as the enrichment succeeded...
-		if enrichStatus[ix] == true {
+		if processStatus[ix] == true {
 			outboundMessages = append(outboundMessages, *inboundMessages[ix].ContentClone())
 		}
 	}
@@ -149,7 +162,7 @@ func processesInboundBlock(enricher Enricher, aws awssqs.AWS_SQS, cache CacheLoa
 
 	// we need to construct an array of results based on the operations performed, enrich and a put to the queue
 	enrichErrors := 0
-	for ix, v := range enrichStatus {
+	for ix, v := range processStatus {
 		finalStatus[ix] = true
 		if v == false {
 			finalStatus[ix] = false

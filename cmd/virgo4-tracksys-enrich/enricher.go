@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/xml"
-	"net/http"
-	//"bytes"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
@@ -88,8 +85,8 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
 // out when we request them.
 func (e *enrichImpl) enrichableItem(message *awssqs.Message) bool {
 
-	// serch for the "serials" facade field
-	facetTag := e.makeFieldTagPair("pool_f_stored", "serials")
+	// search for the "serials" facade field
+	facetTag := ConstructFieldTagPair("pool_f_stored", "serials")
 	if strings.Contains(string(message.Payload), facetTag) {
 		log.Printf("INFO: found %s in payload", facetTag)
 		return false
@@ -126,23 +123,23 @@ func (e *enrichImpl) applyEnrichment(tracksysDetails *TrackSysItemDetails, messa
 	// build our additional tag data
 	var additionalTags strings.Builder
 
-	additionalTags.WriteString(e.makeFieldTagSet("format_f_stored", e.xmlEncodeValues(format_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("feature_f_stored", e.xmlEncodeValues(feature_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("source_f_stored", e.xmlEncodeValues(source_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("format_f_stored", XmlEncodeValues(format_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("feature_f_stored", XmlEncodeValues(feature_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("source_f_stored", XmlEncodeValues(source_facets)))
 
-	additionalTags.WriteString(e.makeFieldTagSet("marc_display_f_stored", e.xmlEncodeValues(marc_display_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("additional_collection_f_stored", e.xmlEncodeValues(additional_collection_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("alternate_id_f_stored", e.xmlEncodeValues(alternate_id_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("individual_call_number_a", e.xmlEncodeValues(individual_call_number_display)))
-	additionalTags.WriteString(e.makeFieldTagSet("thumbnail_url_a", e.xmlEncodeValues(thumbnail_url_display)))
-	additionalTags.WriteString(e.makeFieldTagSet("rights_wrapper_url_a", e.xmlEncodeValues(rights_wrapper_url_display)))
-	additionalTags.WriteString(e.makeFieldTagSet("rights_wrapper_a", e.xmlEncodeValues(rights_wrapper_display)))
-	additionalTags.WriteString(e.makeFieldTagSet("pdf_url_a", e.xmlEncodeValues(pdf_url_display)))
-	additionalTags.WriteString(e.makeFieldTagSet("policy_f_stored", e.xmlEncodeValues(policy_facets)))
-	additionalTags.WriteString(e.makeFieldTagSet("despined_barcodes_a", e.xmlEncodeValues(despined_barcodes_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("marc_display_f_stored", XmlEncodeValues(marc_display_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("additional_collection_f_stored", XmlEncodeValues(additional_collection_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("alternate_id_f_stored", XmlEncodeValues(alternate_id_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("individual_call_number_a", XmlEncodeValues(individual_call_number_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("thumbnail_url_a", XmlEncodeValues(thumbnail_url_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("rights_wrapper_url_a", XmlEncodeValues(rights_wrapper_url_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("rights_wrapper_a", XmlEncodeValues(rights_wrapper_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("pdf_url_a", XmlEncodeValues(pdf_url_display)))
+	additionalTags.WriteString(ConstructFieldTagSet("policy_f_stored", XmlEncodeValues(policy_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("despined_barcodes_a", XmlEncodeValues(despined_barcodes_display)))
 
 	// a special case
-	//buf := e.makeFieldTagSet( "iiif_presentation_metadata_a", e.xmlEncodeValues( iiif_presentation_metadata_display ) )
+	//buf := ConstructFieldTagSet( "iiif_presentation_metadata_a", XmlEncodeValues( iiif_presentation_metadata_display ) )
 	//sz := len( buf )
 	//if sz > maxSolrFieldSize {
 	//   log.Printf("WARNING: iiif_presentation_metadata_a field exceeds maximum size, ignoring. size %d", sz )
@@ -304,32 +301,6 @@ func (e *enrichImpl) extractDespinedBarcodesDisplay(tracksysDetails *TrackSysIte
 		}
 	}
 	return res, nil
-}
-
-func (e *enrichImpl) xmlEncodeValues(values []string) []string {
-	for ix := range values {
-		values[ix] = e.xmlEscape(values[ix])
-	}
-
-	return values
-}
-
-func (e *enrichImpl) makeFieldTagSet(name string, values []string) string {
-	var res strings.Builder
-	for _, v := range values {
-		res.WriteString(e.makeFieldTagPair(name, v))
-	}
-	return res.String()
-}
-
-func (e *enrichImpl) makeFieldTagPair(name string, value string) string {
-	return fmt.Sprintf("<field name=\"%s\">%s</field>", name, value)
-}
-
-func (e *enrichImpl) xmlEscape(value string) string {
-	var escaped bytes.Buffer
-	_ = xml.EscapeText(&escaped, []byte(value))
-	return escaped.String()
 }
 
 //

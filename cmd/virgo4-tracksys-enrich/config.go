@@ -19,6 +19,8 @@ type ServiceConfig struct {
 	ApiDetailsPath   string // the path component of the details API
 	CacheAge         int    // how frequently do we reload the cache (in seconds)
 
+	RewriteFields map[string]string // the fields we explicitly rewrite
+
 	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
 
 	WorkerQueueSize int // the inbound message queue size to feed the workers
@@ -71,14 +73,17 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.ServiceEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_SERVICE_URL")
 	cfg.ServiceTimeout = envToInt("VIRGO4_TRACKSYS_ENRICH_SERVICE_TIMEOUT")
-	cfg.ApiDirectoryPath = "api/published"
-	cfg.ApiDetailsPath = "api/sirsi"
 	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
 
 	cfg.RightsEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_RIGHTS_URL")
 
 	cfg.WorkerQueueSize = envToInt("VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE")
 	cfg.Workers = envToInt("VIRGO4_TRACKSYS_ENRICH_WORKERS")
+
+	// maybe configure later
+	cfg.ApiDirectoryPath = "api/published"
+	cfg.ApiDetailsPath = "api/sirsi"
+	cfg.RewriteFields = map[string]string{"uva_availability_f_stored": "Online", "anon_availability_f_stored": "Online"}
 
 	log.Printf("[CONFIG] InQueueName          = [%s]", cfg.InQueueName)
 	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName)
