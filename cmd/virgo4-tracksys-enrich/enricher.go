@@ -22,7 +22,7 @@ var errorNoIdentifier = fmt.Errorf("no identifier attribute located for document
 
 // Enricher - the interface
 type Enricher interface {
-	Enrich(CacheLoader, *awssqs.Message) error
+	Enrich(CacheLoader, *awssqs.Message) (bool, bool, error)
 }
 
 // this is our actual implementation
@@ -44,41 +44,48 @@ func NewEnricher(config *ServiceConfig) Enricher {
 	return impl
 }
 
-func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) error {
+func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) (bool, bool, error) {
+
+	// passed back to caller in the event there are subsequent processing steps
+	inTrackSys := false
+	wasEnriched := false
 
 	// extract the ID else we cannot do anything
-	id, found := message.GetAttribute(awssqs.AttributeKeyRecordId)
-	if found == true {
-		found, err := cache.Contains(id)
+	id, foundId := message.GetAttribute(awssqs.AttributeKeyRecordId)
+	if foundId == true {
+		var err error
+		inTrackSys, err = cache.Contains(id)
 		if err != nil {
-			return err
+			return inTrackSys, wasEnriched, err
 		}
 
 		// tracksys contains information about this item
-		if found == true {
+		if inTrackSys == true {
 
-			// we have determined that we do not want to enrich certain classs of item
-			toEnrich := e.enrichableItem(message)
-			if toEnrich == true {
+			// we have determined that we do not want to enrich certain class of item
+			shouldEnrich := e.enrichableItem(message)
+			if shouldEnrich == true {
 				log.Printf("INFO: located id %s in tracksys cache, getting details", id)
 				trackSysDetails, err := cache.Lookup(id)
 				if err != nil {
-					return err
+					return inTrackSys, wasEnriched, err
 				}
 				err = e.applyEnrichment(trackSysDetails, message)
 				if err != nil {
-					return err
+					return inTrackSys, wasEnriched, err
 				}
+				// we did some sort of enrichment
+				wasEnriched = true
 			} else {
 				log.Printf("INFO: id %s is a special item, ignoring it", id)
 			}
 		}
 	} else {
 		log.Printf("ERROR: no identifier attribute located for document, no enrichment possible")
-		return errorNoIdentifier
+		return inTrackSys, wasEnriched, errorNoIdentifier
 	}
 
-	return nil
+	return inTrackSys, wasEnriched, nil
 }
 
 // there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times

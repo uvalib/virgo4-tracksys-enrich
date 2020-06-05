@@ -33,7 +33,7 @@ func (r *rewriteImpl) Rewrite(message *awssqs.Message) error {
 	current := string(message.Payload)
 
 	// remove the existing fields
-	for k, _ := range r.rewriteFields {
+	for k := range r.rewriteFields {
 		current = r.removeField(current, k)
 	}
 

@@ -103,7 +103,7 @@ func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_
 
 	// enrich/rewrite as much as possible, in the event of an error, just press on
 	for ix := range inboundMessages {
-		err := enricher.Enrich(cache, &inboundMessages[ix])
+		inTrackSys, _, err := enricher.Enrich(cache, &inboundMessages[ix])
 
 		if err != nil {
 			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
@@ -114,13 +114,16 @@ func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_
 			}
 		}
 
-		err = rewriter.Rewrite(&inboundMessages[ix])
-		if err != nil {
-			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
-			if found == false {
-				log.Printf("WARNING: rewrite failed for message %d (%s)", ix, err)
-			} else {
-				log.Printf("WARNING: rewrite failed for id %s (%s)", id, err)
+		// only rewrite items located in tracksys
+		if inTrackSys == true {
+			err = rewriter.Rewrite(&inboundMessages[ix])
+			if err != nil {
+				id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
+				if found == false {
+					log.Printf("WARNING: rewrite failed for message %d (%s)", ix, err)
+				} else {
+					log.Printf("WARNING: rewrite failed for id %s (%s)", id, err)
+				}
 			}
 		}
 
