@@ -1,6 +1,9 @@
 package main
 
-import "github.com/uvalib/virgo4-sqs-sdk/awssqs"
+import (
+	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
+	"log"
+)
 
 // PipelineStep - the interface representing a processing step of the enrich pipeline
 type PipelineStep interface {
@@ -15,39 +18,62 @@ type PipelineStep interface {
 	Process(*awssqs.Message) (bool, bool, error)
 }
 
-//// Pipeline - the interface representing the complete enrich pipeline
-//type Pipeline interface {
-//
-//	// process the provided message and return:
-//	//    int   - the step that failed or -1 if successful
-//	//    error - did an error occur?
-//	Process(*awssqs.Message) (int, error)
-//}
-//
-//// this is our actual pipeline implementation
-//type pipelineImpl struct {
-//	steps []PipelineStep // the individual steps of the enrich pipeline
-//}
-//
-//// NewPipeline - the factory for the enrich pipeline
-//func NewPipeline(config *ServiceConfig) Pipeline {
-//
-//	// mock implementation here if necessary
-//
-//	impl := &pipelineImpl{}
-//	impl.steps = make([]PipelineStep, 0)
-//
-//	// the pipeline consists of 3 steps:
-//	//  1. tracksys enrich
-//	//  2. field rewrite
-//	//  3. xxx
-//
-//	return impl
-//}
-//
-//func (p *pipelineImpl) Process(message *awssqs.Message) (int, error) {
-//	return -1, nil
-//}
+// Pipeline - the interface representing the complete enrich pipeline
+type Pipeline interface {
+
+	// process the provided message and return:
+	//    int   - the step that failed or -1 if successful
+	//    error - did an error occur?
+	Process(*awssqs.Message) (int, error)
+}
+
+// this is our actual pipeline implementation
+type pipelineImpl struct {
+	steps []PipelineStep // the individual steps of the enrich pipeline
+}
+
+// NewEnrichPipeline - the factory for the enrich pipeline
+func NewEnrichPipeline(config *ServiceConfig) Pipeline {
+
+	// mock implementation here if necessary
+
+	impl := &pipelineImpl{}
+	impl.steps = make([]PipelineStep, 0)
+
+	// the pipeline consists of 3 steps:
+	//  1. tracksys enrich
+	//  2. field rewrite
+	//  3. xxx
+
+	impl.steps = append(impl.steps, NewEnricherStep(config))
+	impl.steps = append(impl.steps, NewRewriterStep(config))
+	//impl.steps = append(impl.steps, NewOtherStep(config))
+	return impl
+}
+
+func (p *pipelineImpl) Process(message *awssqs.Message) (int, error) {
+
+	for ix, step := range p.steps {
+		doNext, _, err := step.Process(message)
+
+		// error happened during a step
+		if err != nil {
+			log.Printf("WARNING: enrich pipeline failed at step %d (%s)", ix, step.Name())
+			// return step number and error
+			return ix, err
+		}
+
+		// no error but don't continue the pipeline
+		if doNext == false {
+			log.Printf("INFO: enrich pipeline exited early at step %d (%s)", ix, step.Name())
+			// all is well
+			return -1, nil
+		}
+	}
+
+	// done all the steps and all is well
+	return -1, nil
+}
 
 //
 // end of file

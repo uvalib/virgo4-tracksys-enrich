@@ -31,8 +31,8 @@ type enrichImpl struct {
 	httpClient     *http.Client // our http client connection
 }
 
-// NewEnricher - the factory
-func NewEnricher(config *ServiceConfig) PipelineStep {
+// NewEnricherStep - the factory
+func NewEnricherStep(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 

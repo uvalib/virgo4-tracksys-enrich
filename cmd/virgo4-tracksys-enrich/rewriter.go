@@ -12,8 +12,8 @@ type rewriteImpl struct {
 	rewriteFields map[string]string // the fields to rewrite and their rewritten values
 }
 
-// NewRewriter - the factory
-func NewRewriter(config *ServiceConfig) PipelineStep {
+// NewRewriterStep - the factory
+func NewRewriterStep(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 
