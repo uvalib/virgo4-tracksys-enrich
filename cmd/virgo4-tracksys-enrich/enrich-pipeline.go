@@ -67,7 +67,7 @@ func (pi *pipelineImpl) Process(message *awssqs.Message) (int, error) {
 
 		// no error but don't continue the pipeline
 		if doNext == false {
-			log.Printf("INFO: enrich pipeline exited early at step %d (%s)", ix, step.Name())
+			//log.Printf("INFO: enrich pipeline exited early at step %d (%s)", ix, step.Name())
 			// all is well
 			return -1, nil
 		}
