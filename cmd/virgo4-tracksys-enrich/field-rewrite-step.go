@@ -27,7 +27,7 @@ func (si *rewriteFieldStepImpl) Name( ) string {
 	return "Field rewrite"
 }
 
-func (si *rewriteFieldStepImpl) Process(message *awssqs.Message) (bool, bool, error) {
+func (si *rewriteFieldStepImpl) Process(message *awssqs.Message, data interface{}) (bool, interface{}, error) {
 
 	current := string(message.Payload)
 
@@ -42,7 +42,7 @@ func (si *rewriteFieldStepImpl) Process(message *awssqs.Message) (bool, bool, er
 	}
 
 	message.Payload = []byte(current)
-	return true, true, nil
+	return true, data, nil
 }
 
 func (si *rewriteFieldStepImpl) removeField(message string, fieldName string) string {

@@ -24,9 +24,9 @@ func (si *partialDigitizedStepImpl) Name( ) string {
 	return "Partial digitized"
 }
 
-func (si *partialDigitizedStepImpl) Process(message *awssqs.Message) (bool, bool, error) {
+func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interface{}) (bool, interface{}, error) {
 
-	return true, true, nil
+	return true, data, nil
 }
 
 //

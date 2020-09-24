@@ -12,10 +12,10 @@ type PipelineStep interface {
 	Name() string
 
 	// process the provided message and return:
-	//    bool  - should the pipeline continue to the next step?
-	//    bool  - was the message updated during this step?
-	//    error - did an error occur?
-	Process(*awssqs.Message) (bool, bool, error)
+	//    bool        - should the pipeline continue to the next step?
+	//    interface{} - anything to be passed to the next step
+	//    error       - did an error occur?
+	Process(*awssqs.Message, interface{}) (bool, interface{}, error)
 }
 
 // Pipeline - the interface representing the complete enrich pipeline
@@ -52,10 +52,11 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	return impl
 }
 
-func (p *pipelineImpl) Process(message *awssqs.Message) (int, error) {
+func (pi *pipelineImpl) Process(message *awssqs.Message) (int, error) {
 
-	for ix, step := range p.steps {
-		doNext, _, err := step.Process(message)
+	var payload interface{}
+	for ix, step := range pi.steps {
+		doNext, data, err := step.Process(message, payload)
 
 		// error happened during a step
 		if err != nil {
@@ -70,6 +71,9 @@ func (p *pipelineImpl) Process(message *awssqs.Message) (int, error) {
 			// all is well
 			return -1, nil
 		}
+
+		// to pass on to the next step
+		payload = data
 	}
 
 	// done all the steps and all is well

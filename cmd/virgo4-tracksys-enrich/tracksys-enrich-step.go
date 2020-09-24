@@ -43,19 +43,15 @@ func (si *tracksysEnrichStepImpl) Name( ) string {
 	return "Tracksys enrich"
 }
 
-func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message) (bool, bool, error) {
-
-	// passed back to caller in the event there are subsequent processing steps
-	inTrackSys := false
-	wasEnriched := false
+func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, _ interface{}) (bool, interface{}, error) {
 
 	// extract the ID else we cannot do anything
 	id, foundId := message.GetAttribute(awssqs.AttributeKeyRecordId)
 	if foundId == true {
 		var err error
-		inTrackSys, err = TracksysIdCache.Contains(id)
+		inTrackSys, err := TracksysIdCache.Contains(id)
 		if err != nil {
-			return inTrackSys, wasEnriched, err
+			return false, nil, err
 		}
 
 		// tracksys contains information about this item
@@ -67,24 +63,25 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message) (bool, bool, 
 				log.Printf("INFO: located id %si in tracksys cache, getting details", id)
 				trackSysDetails, err := TracksysIdCache.Lookup(id)
 				if err != nil {
-					return inTrackSys, wasEnriched, err
+					return false, nil, err
 				}
 				err = si.applyEnrichment(trackSysDetails, message)
 				if err != nil {
-					return inTrackSys, wasEnriched, err
+					return false, nil, err
 				}
-				// we did some sort of enrichment
-				wasEnriched = true
+
+				// we found the item in tracksys
+				return true, trackSysDetails, nil
 			} else {
 				log.Printf("INFO: id %si is a special item, ignoring it", id)
 			}
 		}
 	} else {
 		log.Printf("ERROR: no identifier attribute located for document, no enrichment possible")
-		return inTrackSys, wasEnriched, errorNoIdentifier
+		return false, nil, errorNoIdentifier
 	}
 
-	return inTrackSys, wasEnriched, nil
+	return false, nil, nil
 }
 
 // there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times
