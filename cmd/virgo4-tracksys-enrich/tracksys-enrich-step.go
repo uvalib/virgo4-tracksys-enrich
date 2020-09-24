@@ -71,7 +71,7 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, _ interface{}
 				}
 
 				// we found the item in tracksys
-				return true, trackSysDetails, nil
+				return true, *trackSysDetails, nil
 			} else {
 				log.Printf("INFO: id %s is a special item, ignoring it", id)
 			}
