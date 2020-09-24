@@ -32,7 +32,7 @@ type enrichImpl struct {
 }
 
 // NewEnricher - the factory
-func NewEnricher(config *ServiceConfig) Enricher {
+func NewEnricher(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 
@@ -44,7 +44,11 @@ func NewEnricher(config *ServiceConfig) Enricher {
 	return impl
 }
 
-func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) (bool, bool, error) {
+func (r *enrichImpl) Name( ) string {
+	return "Tracksys enrich"
+}
+
+func (e *enrichImpl) Process(message *awssqs.Message) (bool, bool, error) {
 
 	// passed back to caller in the event there are subsequent processing steps
 	inTrackSys := false
@@ -54,7 +58,7 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) (bool, b
 	id, foundId := message.GetAttribute(awssqs.AttributeKeyRecordId)
 	if foundId == true {
 		var err error
-		inTrackSys, err = cache.Contains(id)
+		inTrackSys, err = TracksysIdCache.Contains(id)
 		if err != nil {
 			return inTrackSys, wasEnriched, err
 		}
@@ -66,7 +70,7 @@ func (e *enrichImpl) Enrich(cache CacheLoader, message *awssqs.Message) (bool, b
 			shouldEnrich := e.enrichableItem(message)
 			if shouldEnrich == true {
 				log.Printf("INFO: located id %s in tracksys cache, getting details", id)
-				trackSysDetails, err := cache.Lookup(id)
+				trackSysDetails, err := TracksysIdCache.Lookup(id)
 				if err != nil {
 					return inTrackSys, wasEnriched, err
 				}

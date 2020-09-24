@@ -29,8 +29,8 @@ func main() {
 	outQueueHandle, err := aws.QueueHandle(cfg.OutQueueName)
 	fatalIfError(err)
 
-	// load the cache
-	cache, err := NewCacheLoader(cfg)
+	// load the Tracksis ID cache (so we only lookup items in tracksys that we know already exist)
+	err = NewCacheLoader(cfg)
 	fatalIfError(err)
 
 	// create the record channel
@@ -38,7 +38,7 @@ func main() {
 
 	// start workers here
 	for w := 1; w <= cfg.Workers; w++ {
-		go worker(w, cfg, aws, cache, inboundMessageChan, inQueueHandle, outQueueHandle)
+		go worker(w, cfg, aws, inboundMessageChan, inQueueHandle, outQueueHandle)
 	}
 
 	for {

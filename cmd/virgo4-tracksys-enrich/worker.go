@@ -12,7 +12,7 @@ var waitTimeout = 5 * time.Second
 
 var emptyOpList = make([]awssqs.OpStatus, 0)
 
-func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
+func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, inbound <-chan awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) {
 
 	// we use this to enrich each message as appropriate
 	enricher := NewEnricher(config)
@@ -50,7 +50,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 			// add it to the queued list
 			queued = append(queued, message)
 			if blocksize == awssqs.MAX_SQS_BLOCK_COUNT {
-				_, err := processesInboundBlock(enricher, rewriter, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, rewriter, aws, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
@@ -71,7 +71,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 
 			// we timed out, probably best to send anything pending
 			if blocksize != 0 {
-				_, err := processesInboundBlock(enricher, rewriter, aws, cache, queued, inQueue, outQueue)
+				_, err := processesInboundBlock(enricher, rewriter, aws, queued, inQueue, outQueue)
 				if err != nil {
 					if err != awssqs.ErrOneOrMoreOperationsUnsuccessful {
 						fatalIfError(err)
@@ -93,7 +93,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, cache CacheLoader
 	}
 }
 
-func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_SQS, cache CacheLoader, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ([]awssqs.OpStatus, error) {
+func processesInboundBlock(enricher PipelineStep, rewriter PipelineStep, aws awssqs.AWS_SQS, inboundMessages []awssqs.Message, inQueue awssqs.QueueHandle, outQueue awssqs.QueueHandle) ([]awssqs.OpStatus, error) {
 
 	// keep a list of the ones that succeed/fail
 	finalStatus := make([]awssqs.OpStatus, len(inboundMessages))
@@ -103,7 +103,7 @@ func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_
 
 	// enrich/rewrite as much as possible, in the event of an error, just press on
 	for ix := range inboundMessages {
-		inTrackSys, _, err := enricher.Enrich(cache, &inboundMessages[ix])
+		inTrackSys, _, err := enricher.Process(&inboundMessages[ix])
 
 		if err != nil {
 			id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
@@ -116,7 +116,7 @@ func processesInboundBlock(enricher Enricher, rewriter Rewriter, aws awssqs.AWS_
 
 		// only rewrite items located in tracksys
 		if inTrackSys == true {
-			err = rewriter.Rewrite(&inboundMessages[ix])
+			_, _, err = rewriter.Process(&inboundMessages[ix])
 			if err != nil {
 				id, found := inboundMessages[ix].GetAttribute(awssqs.AttributeKeyRecordId)
 				if found == false {

@@ -7,18 +7,13 @@ import (
 	"strings"
 )
 
-// Rewriter - the interface
-type Rewriter interface {
-	Rewrite(*awssqs.Message) error
-}
-
 // this is our actual implementation
 type rewriteImpl struct {
 	rewriteFields map[string]string // the fields to rewrite and their rewritten values
 }
 
 // NewRewriter - the factory
-func NewRewriter(config *ServiceConfig) Rewriter {
+func NewRewriter(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 
@@ -28,7 +23,11 @@ func NewRewriter(config *ServiceConfig) Rewriter {
 	return impl
 }
 
-func (r *rewriteImpl) Rewrite(message *awssqs.Message) error {
+func (r *rewriteImpl) Name( ) string {
+	return "Field rewrite"
+}
+
+func (r *rewriteImpl) Process(message *awssqs.Message) (bool, bool, error) {
 
 	current := string(message.Payload)
 
@@ -43,7 +42,7 @@ func (r *rewriteImpl) Rewrite(message *awssqs.Message) error {
 	}
 
 	message.Payload = []byte(current)
-	return nil
+	return true, true, nil
 }
 
 func (r *rewriteImpl) removeField(message string, fieldName string) string {

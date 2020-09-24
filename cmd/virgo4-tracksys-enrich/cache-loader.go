@@ -15,6 +15,9 @@ type CacheLoader interface {
 	Lookup(string) (*TrackSysItemDetails, error)
 }
 
+// our singleton store
+var TracksysIdCache CacheLoader
+
 // this is our actual implementation
 type cacheLoaderImpl struct {
 	directoryUrl string       // the URL for requesting a directory of contents
@@ -29,22 +32,24 @@ type cacheLoaderImpl struct {
 }
 
 // NewCacheLoader - the factory
-func NewCacheLoader(config *ServiceConfig) (CacheLoader, error) {
+func NewCacheLoader(config *ServiceConfig) error {
 
 	// mock implementation here if necessary
 
 	cache := NewCache()
-	loader := &cacheLoaderImpl{cacheImpl: cache}
-	loader.directoryUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDirectoryPath)
-	loader.detailsUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDetailsPath)
-	loader.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
+	impl := &cacheLoaderImpl{cacheImpl: cache}
+	impl.directoryUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDirectoryPath)
+	impl.detailsUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDetailsPath)
+	impl.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
 	// configure the http client
-	loader.httpClient = newHttpClient(config.Workers, config.ServiceTimeout)
+	impl.httpClient = newHttpClient(config.Workers, config.ServiceTimeout)
+
+	// assign to our global singleton
+	TracksysIdCache = impl
 
 	// reload the cache
-	err := loader.reload()
-	return loader, err
+	return impl.reload()
 }
 
 // Contains - lookup in the cache, refresh as necessary
