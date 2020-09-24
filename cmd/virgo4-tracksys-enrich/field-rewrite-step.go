@@ -8,7 +8,7 @@ import (
 )
 
 // this is our actual implementation
-type rewriteImpl struct {
+type rewriteFieldStepImpl struct {
 	rewriteFields map[string]string // the fields to rewrite and their rewritten values
 }
 
@@ -17,43 +17,43 @@ func NewFieldRewriteStep(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 
-	impl := &rewriteImpl{}
+	impl := &rewriteFieldStepImpl{}
 	impl.rewriteFields = config.RewriteFields
 
 	return impl
 }
 
-func (r *rewriteImpl) Name( ) string {
+func (si *rewriteFieldStepImpl) Name( ) string {
 	return "Field rewrite"
 }
 
-func (r *rewriteImpl) Process(message *awssqs.Message) (bool, bool, error) {
+func (si *rewriteFieldStepImpl) Process(message *awssqs.Message) (bool, bool, error) {
 
 	current := string(message.Payload)
 
 	// remove the existing fields
-	for k := range r.rewriteFields {
-		current = r.removeField(current, k)
+	for k := range si.rewriteFields {
+		current = si.removeField(current, k)
 	}
 
 	// then add the rewritten ones
-	for k, v := range r.rewriteFields {
-		current = r.addField(current, k, v)
+	for k, v := range si.rewriteFields {
+		current = si.addField(current, k, v)
 	}
 
 	message.Payload = []byte(current)
 	return true, true, nil
 }
 
-func (r *rewriteImpl) removeField(message string, fieldName string) string {
+func (si *rewriteFieldStepImpl) removeField(message string, fieldName string) string {
 
-	matchExpr := fmt.Sprintf("<field name=\"%s\">.*?</field>", fieldName)
+	matchExpr := fmt.Sprintf("<field name=\"%si\">.*?</field>", fieldName)
 	re := regexp.MustCompile(matchExpr)
 	return re.ReplaceAllString(message, "")
 }
 
 // construct a tag pair and add it on to the end of the document
-func (r *rewriteImpl) addField(message string, fieldName string, fieldValue string) string {
+func (si *rewriteFieldStepImpl) addField(message string, fieldName string, fieldValue string) string {
 
 	docEndTag := "</doc>"
 	var additional strings.Builder

@@ -41,13 +41,14 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	impl.steps = make([]PipelineStep, 0)
 
 	// the pipeline consists of 3 steps:
-	//  1. tracksys enrich
-	//  2. field rewrite
-	//  3. xxx
+	//  1. tracksys enrich step
+	//  2. field rewrite step
+	//  3. partial digitization step
 
 	impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
 	impl.steps = append(impl.steps, NewFieldRewriteStep(config))
-	//impl.steps = append(impl.steps, NewOtherStep(config))
+	impl.steps = append(impl.steps, NewPartialDigitizedStep(config))
+
 	return impl
 }
 
