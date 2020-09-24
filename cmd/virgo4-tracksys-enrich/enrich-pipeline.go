@@ -45,8 +45,8 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	//  2. field rewrite
 	//  3. xxx
 
-	impl.steps = append(impl.steps, NewEnricherStep(config))
-	impl.steps = append(impl.steps, NewRewriterStep(config))
+	impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
+	impl.steps = append(impl.steps, NewFieldRewriteStep(config))
 	//impl.steps = append(impl.steps, NewOtherStep(config))
 	return impl
 }

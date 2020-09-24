@@ -20,19 +20,14 @@ import (
 
 var errorNoIdentifier = fmt.Errorf("no identifier attribute located for document")
 
-// Enricher - the interface
-type Enricher interface {
-	Enrich(CacheLoader, *awssqs.Message) (bool, bool, error)
-}
-
 // this is our actual implementation
 type enrichImpl struct {
 	RightsEndpoint string       // the Rights URL
 	httpClient     *http.Client // our http client connection
 }
 
-// NewEnricherStep - the factory
-func NewEnricherStep(config *ServiceConfig) PipelineStep {
+// NewTracksysEnrichStep - the factory
+func NewTracksysEnrichStep(config *ServiceConfig) PipelineStep {
 
 	// mock implementation here if necessary
 
