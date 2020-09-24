@@ -60,7 +60,7 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, _ interface{}
 			// we have determined that we do not want to enrich certain class of item
 			shouldEnrich := si.enrichableItem(message)
 			if shouldEnrich == true {
-				log.Printf("INFO: located id %si in tracksys cache, getting details", id)
+				log.Printf("INFO: located id %s in tracksys cache, getting details", id)
 				trackSysDetails, err := TracksysIdCache.Lookup(id)
 				if err != nil {
 					return false, nil, err
@@ -73,7 +73,7 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, _ interface{}
 				// we found the item in tracksys
 				return true, trackSysDetails, nil
 			} else {
-				log.Printf("INFO: id %si is a special item, ignoring it", id)
+				log.Printf("INFO: id %s is a special item, ignoring it", id)
 			}
 		}
 	} else {
@@ -91,7 +91,7 @@ func (si *tracksysEnrichStepImpl) enrichableItem(message *awssqs.Message) bool {
 	// search for the "serials" facade field
 	facetTag := ConstructFieldTagPair("pool_f_stored", "serials")
 	if strings.Contains(string(message.Payload), facetTag) {
-		log.Printf("INFO: found %si in payload", facetTag)
+		log.Printf("INFO: found %s in payload", facetTag)
 		return false
 	}
 
@@ -152,7 +152,7 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails *TrackSysItemD
 
 	// tack it on the end of the document
 	docEndTag := "</doc>"
-	//log.Printf( "Enrich with [%si]", additionalTags.String() )
+	//log.Printf( "Enrich with [%s]", additionalTags.String() )
 	additionalTags.WriteString(docEndTag)
 	current := string(message.Payload)
 	current = strings.Replace(current, docEndTag, additionalTags.String(), 1)
@@ -276,7 +276,7 @@ func (si *tracksysEnrichStepImpl) extractPolicyFacets(tracksysDetails *TrackSysI
 	res := make([]string, 0, 1)
 	for _, i := range tracksysDetails.Items {
 		if len(i.Pid) != 0 {
-			url := fmt.Sprintf("%si/%si", si.RightsEndpoint, i.Pid)
+			url := fmt.Sprintf("%s/%s", si.RightsEndpoint, i.Pid)
 			body, err := httpGet(url, si.httpClient)
 			if err == nil {
 				if string(body) != "public" {
@@ -284,7 +284,7 @@ func (si *tracksysEnrichStepImpl) extractPolicyFacets(tracksysDetails *TrackSysI
 				}
 				break
 			} else {
-				log.Printf("ERROR: endpoint %si returns %si", url, err)
+				log.Printf("ERROR: endpoint %s returns %s", url, err)
 				return nil, err
 			}
 		}

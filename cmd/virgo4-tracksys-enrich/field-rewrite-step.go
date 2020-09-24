@@ -47,7 +47,7 @@ func (si *rewriteFieldStepImpl) Process(message *awssqs.Message, data interface{
 
 func (si *rewriteFieldStepImpl) removeField(message string, fieldName string) string {
 
-	matchExpr := fmt.Sprintf("<field name=\"%si\">.*?</field>", fieldName)
+	matchExpr := fmt.Sprintf("<field name=\"%s\">.*?</field>", fieldName)
 	re := regexp.MustCompile(matchExpr)
 	return re.ReplaceAllString(message, "")
 }
