@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
-	"regexp"
-	"strings"
 )
 
 // this is our actual implementation
@@ -33,34 +30,16 @@ func (si *rewriteFieldStepImpl) Process(message *awssqs.Message, data interface{
 
 	// remove the existing fields
 	for k := range si.rewriteFields {
-		current = si.removeField(current, k)
+		current = RemoveXmlField(current, k)
 	}
 
 	// then add the rewritten ones
 	for k, v := range si.rewriteFields {
-		current = si.addField(current, k, v)
+		current = AppendXmlField(current, k, v)
 	}
 
 	message.Payload = []byte(current)
 	return true, data, nil
-}
-
-func (si *rewriteFieldStepImpl) removeField(message string, fieldName string) string {
-
-	matchExpr := fmt.Sprintf("<field name=\"%s\">.*?</field>", fieldName)
-	re := regexp.MustCompile(matchExpr)
-	return re.ReplaceAllString(message, "")
-}
-
-// construct a tag pair and add it on to the end of the document
-func (si *rewriteFieldStepImpl) addField(message string, fieldName string, fieldValue string) string {
-
-	docEndTag := "</doc>"
-	var additional strings.Builder
-	additional.WriteString(ConstructFieldTagPair(fieldName, fieldValue))
-	additional.WriteString(docEndTag)
-	replaced := strings.Replace(message, docEndTag, additional.String(), 1)
-	return replaced
 }
 
 //
