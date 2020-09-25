@@ -40,11 +40,13 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	impl := &pipelineImpl{}
 	impl.steps = make([]PipelineStep, 0)
 
-	// the pipeline consists of 3 steps:
-	//  1. tracksys enrich step
-	//  2. field rewrite step
-	//  3. partial digitization step
+	// the pipeline consists of 4 steps:
+	//  1. tracksys extract step
+	//  2. tracksys enrich step
+	//  3. field rewrite step
+	//  4. partial digitization step
 
+	impl.steps = append(impl.steps, NewTracksysExtractStep(config))
 	impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
 	impl.steps = append(impl.steps, NewFieldRewriteStep(config))
 	impl.steps = append(impl.steps, NewPartialDigitizedStep(config))
@@ -67,7 +69,7 @@ func (pi *pipelineImpl) Process(message *awssqs.Message) (int, error) {
 
 		// no error but don't continue the pipeline
 		if doNext == false {
-			//log.Printf("INFO: enrich pipeline exited early at step %d (%s)", ix, step.Name())
+			log.Printf("INFO: enrich pipeline exited early at step %d (%s)", ix, step.Name())
 			// all is well
 			return -1, nil
 		}

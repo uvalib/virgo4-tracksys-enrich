@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var ErrorTypeAssertion = fmt.Errorf("failure to type assert interface")
+
 // construct a tag pair and append it on to the end of the document
 func AppendXmlField(message string, fieldName string, fieldValue string) string {
 

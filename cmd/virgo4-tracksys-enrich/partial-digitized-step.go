@@ -12,7 +12,6 @@ var BarcodeFieldName = "barcode_e_stored"
 var PartiallyDigitizedFieldName  = "digitized_f_stored"
 var PartiallyDigitizedFieldValue = "partial"
 
-var errorTypeAssertion = fmt.Errorf("failure to type assert interface")
 var errorNoBarcodes    = fmt.Errorf("failed to extract barcode fields")
 
 // this is our actual implementation
@@ -44,7 +43,7 @@ func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interf
 		tracksysData, ok := data.(TrackSysItemDetails)
 		if ok == false {
 			log.Printf("ERROR: failed to type assert into known payload")
-			return false, data, errorTypeAssertion
+			return false, data, ErrorTypeAssertion
 		}
 
 		digitizedObjectCount := len( tracksysData.Items )
