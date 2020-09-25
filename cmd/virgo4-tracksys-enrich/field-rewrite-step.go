@@ -20,7 +20,7 @@ func NewFieldRewriteStep(config *ServiceConfig) PipelineStep {
 	return impl
 }
 
-func (si *rewriteFieldStepImpl) Name( ) string {
+func (si *rewriteFieldStepImpl) Name() string {
 	return "Field rewrite"
 }
 

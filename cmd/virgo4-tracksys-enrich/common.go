@@ -34,7 +34,7 @@ func ExtractXmlFields(message string, fieldName string) []string {
 
 	matchExpr := fmt.Sprintf("<field name=\"%s\">(.*?)</field>", fieldName)
 	re := regexp.MustCompile(matchExpr)
-	rs := re.FindAllStringSubmatch(message,-1)
+	rs := re.FindAllStringSubmatch(message, -1)
 	// no match
 	if rs == nil {
 		return []string{}
@@ -42,7 +42,7 @@ func ExtractXmlFields(message string, fieldName string) []string {
 	// return the matches
 	var res []string
 	for _, m := range rs {
-		if len( m[1] ) != 0 {
+		if len(m[1]) != 0 {
 			res = append(res, m[1])
 		}
 	}

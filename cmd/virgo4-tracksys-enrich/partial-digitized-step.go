@@ -8,11 +8,12 @@ import (
 
 // the name of the field we are interested in
 var BarcodeFieldName = "barcode_e_stored"
+
 // the name and value of the field to add if appropriate
-var PartiallyDigitizedFieldName  = "digitized_f_stored"
+var PartiallyDigitizedFieldName = "digitized_f_stored"
 var PartiallyDigitizedFieldValue = "partial"
 
-var errorNoBarcodes    = fmt.Errorf("failed to extract barcode fields")
+var errorNoBarcodes = fmt.Errorf("failed to extract barcode fields")
 
 // this is our actual implementation
 type partialDigitizedStepImpl struct {
@@ -28,7 +29,7 @@ func NewPartialDigitizedStep(config *ServiceConfig) PipelineStep {
 	return impl
 }
 
-func (si *partialDigitizedStepImpl) Name( ) string {
+func (si *partialDigitizedStepImpl) Name() string {
 	return "Partial digitized"
 }
 
@@ -36,8 +37,8 @@ func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interf
 
 	current := string(message.Payload)
 
-	barcodes := ExtractXmlFields( current, BarcodeFieldName )
-	if len( barcodes ) != 0 {
+	barcodes := ExtractXmlFields(current, BarcodeFieldName)
+	if len(barcodes) != 0 {
 		log.Printf("INFO: extracted %d barcode field(s)", len(barcodes))
 
 		tracksysData, ok := data.(TrackSysItemDetails)
@@ -46,7 +47,7 @@ func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interf
 			return false, data, ErrorTypeAssertion
 		}
 
-		digitizedObjectCount := len( tracksysData.Items )
+		digitizedObjectCount := len(tracksysData.Items)
 		log.Printf("INFO: tracksys reports %d digitized item(s)", digitizedObjectCount)
 
 		// we have more items than records of digital items so this should be tagged

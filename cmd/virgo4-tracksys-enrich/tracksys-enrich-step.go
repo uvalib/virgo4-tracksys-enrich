@@ -37,7 +37,7 @@ func NewTracksysEnrichStep(config *ServiceConfig) PipelineStep {
 	return impl
 }
 
-func (si *tracksysEnrichStepImpl) Name( ) string {
+func (si *tracksysEnrichStepImpl) Name() string {
 	return "Tracksys enrich"
 }
 
@@ -47,16 +47,16 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, data interfac
 	//shouldEnrich := si.enrichableItem(message)
 	//if shouldEnrich == true {
 
-		tracksysData, ok := data.(TrackSysItemDetails)
-		if ok == false {
-			log.Printf("ERROR: failed to type assert into known payload")
-			return false, data, ErrorTypeAssertion
-		}
+	tracksysData, ok := data.(TrackSysItemDetails)
+	if ok == false {
+		log.Printf("ERROR: failed to type assert into known payload")
+		return false, data, ErrorTypeAssertion
+	}
 
-		err := si.applyEnrichment(tracksysData, message)
-		if err != nil {
-			return false, data, err
-		}
+	err := si.applyEnrichment(tracksysData, message)
+	if err != nil {
+		return false, data, err
+	}
 	//}
 
 	return true, data, nil

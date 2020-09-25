@@ -21,7 +21,7 @@ func NewTracksysExtractStep(config *ServiceConfig) PipelineStep {
 	return impl
 }
 
-func (si *tracksysExtractStepImpl) Name( ) string {
+func (si *tracksysExtractStepImpl) Name() string {
 	return "Tracksys extract"
 }
 
