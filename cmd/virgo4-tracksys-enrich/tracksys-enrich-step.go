@@ -44,8 +44,8 @@ func (si *tracksysEnrichStepImpl) Name( ) string {
 func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, data interface{}) (bool, interface{}, error) {
 
 	// we have determined that we do not want to enrich certain class of item
-	shouldEnrich := si.enrichableItem(message)
-	if shouldEnrich == true {
+	//shouldEnrich := si.enrichableItem(message)
+	//if shouldEnrich == true {
 
 		tracksysData, ok := data.(TrackSysItemDetails)
 		if ok == false {
@@ -57,24 +57,24 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, data interfac
 		if err != nil {
 			return false, data, err
 		}
-	}
+	//}
 
 	return true, data, nil
 }
 
 // there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times
 // out when we request them.
-func (si *tracksysEnrichStepImpl) enrichableItem(message *awssqs.Message) bool {
-
-	// search for the "serials" facade field
-	facetTag := ConstructFieldTagPair("pool_f_stored", "serials")
-	if strings.Contains(string(message.Payload), facetTag) {
-		log.Printf("INFO: found %s in payload", facetTag)
-		return false
-	}
-
-	return true
-}
+//func (si *tracksysEnrichStepImpl) enrichableItem(message *awssqs.Message) bool {
+//
+//	// search for the "serials" facade field
+//	facetTag := ConstructFieldTagPair("pool_f_stored", "serials")
+//	if strings.Contains(string(message.Payload), facetTag) {
+//		log.Printf("INFO: found %s in payload", facetTag)
+//		return false
+//	}
+//
+//	return true
+//}
 
 func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDetails, message *awssqs.Message) error {
 
