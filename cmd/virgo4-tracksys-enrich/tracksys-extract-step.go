@@ -46,6 +46,9 @@ func (si *tracksysExtractStepImpl) Process(message *awssqs.Message, _ interface{
 			}
 			// we found the item in tracksys
 			return true, *trackSysDetails, nil
+		} else {
+			// item is not in tracksys, no further processing required
+			return false, nil, nil
 		}
 	}
 
