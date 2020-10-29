@@ -1,13 +1,31 @@
 package main
 
 import (
+	"bytes"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
 	"log"
+	"text/template"
 )
+
+// the structure we will template for the metadata cache entry
+type MetadataCache struct {
+	Id    string
+	Parts []MetadataPart
+}
+
+type MetadataPart struct {
+	ManifestUrl string
+	Label       string
+	Pid         string
+	ThumbUrl    string
+	PdfUrl      string
+	PdfStatus   string
+}
 
 // this is our actual implementation
 type metadataCacheStepImpl struct {
-	s3proxy *S3Proxy // our S3 abstraction
+	s3proxy *S3Proxy            // our S3 abstraction
+	tmpl    *template.Template  // our pre-rendered template
 }
 
 // NewMetaDataCacheStep - the factory
@@ -17,6 +35,7 @@ func NewMetaDataCacheStep(config *ServiceConfig) PipelineStep {
 
 	impl := &metadataCacheStepImpl{}
 	impl.s3proxy = NewS3Proxy(config)
+	impl.tmpl = template.Must(template.ParseFiles("templates/cache-entry.json"))
 	return impl
 }
 
@@ -57,8 +76,30 @@ func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TrackSysIte
 
 func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TrackSysItemDetails, message *awssqs.Message) (string, error) {
 
-	metadata := "{\"message\":\"some interesting metadata\"}"
-	return metadata, nil
+	// TEMP ONLY
+	data := MetadataCache{}
+	part := MetadataPart{}
+
+	part.Label = "A B C"
+	part.ManifestUrl = "https://iiifman.lib.virginia.edu/pid/uva-lib:1234"
+	part.PdfStatus = "READY"
+	part.PdfUrl = "https://pdfservice.lib.virginia.edu/pdf/uva-lib:1234"
+	part.Pid = "uva-lib:1234"
+    part.ThumbUrl = "https://iiif.lib.virginia.edu/iiif/uva-lib:1234/full/!125,200/0/default.jpg"
+
+	data.Id = tracksysDetails.SirsiId
+	data.Parts = []MetadataPart{ part }
+
+	var outBuffer bytes.Buffer
+	err := si.tmpl.Execute(&outBuffer, data)
+	if err != nil {
+		log.Printf("ERROR: unable to render cache metadata for %s: %s", data.Id, err.Error())
+		return "", err
+	}
+	log.Printf("INFO: cache metadata generated for %s", data.Id)
+	log.Printf( outBuffer.String() )
+
+	return outBuffer.String(), nil
 }
 
 //

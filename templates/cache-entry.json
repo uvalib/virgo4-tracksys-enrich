@@ -1,0 +1,25 @@
+{
+  "id":"{{.Id}}",
+  "parts": [
+    {{- range $i, $p := .Parts}}
+    {{if $i}}, {{end}}
+    {
+      "iiif_manifest_url": "{{$p.ManifestUrl}}",
+      "label": "{{$p.Label}}",
+      {{- if .PdfUrl}}
+      "pdf": {
+        "status": "{{$p.PdfStatus}}",
+        "urls": {
+          "delete": "{{$p.PdfUrl}}/delete",
+          "download": "{{$p.PdfUrl}}/download",
+          "generate": "{{$p.PdfUrl}}",
+          "status": "{{$p.PdfUrl}}/status"
+        }
+      },
+      {{- end}}
+      "pid": "{{$p.Pid}}",
+      "thumbnail_url":"{{$p.ThumbUrl}}"
+    }
+    {{- end}}
+  ]
+}

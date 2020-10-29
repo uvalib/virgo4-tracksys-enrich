@@ -29,7 +29,7 @@ ENV APP_HOME /virgo4-tracksys-enrich
 WORKDIR $APP_HOME
 
 # Create necessary directories
-RUN mkdir -p $APP_HOME $APP_HOME/bin $APP_HOME/scripts
+RUN mkdir -p $APP_HOME $APP_HOME/bin $APP_HOME/scripts $APP_HOME/templates
 RUN chown -R webservice $APP_HOME && chgrp -R webservice $APP_HOME
 
 # run command
@@ -38,6 +38,7 @@ CMD scripts/entry.sh
 # Move in necessary assets
 COPY package/data/container_bash_profile /home/webservice/.profile
 COPY package/scripts/entry.sh $APP_HOME/scripts/entry.sh
+COPY templates/ $APP_HOME/templates/
 COPY --from=builder /build/bin/virgo4-tracksys-enrich.linux $APP_HOME/bin/virgo4-tracksys-enrich
 
 # Ensure permissions are correct
