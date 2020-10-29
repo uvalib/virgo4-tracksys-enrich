@@ -45,11 +45,13 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	//  2. tracksys enrich step
 	//  3. field rewrite step
 	//  4. partial digitization step
+	//  5. metadata cache step
 
 	impl.steps = append(impl.steps, NewTracksysExtractStep(config))
 	impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
 	impl.steps = append(impl.steps, NewFieldRewriteStep(config))
 	impl.steps = append(impl.steps, NewPartialDigitizedStep(config))
+	impl.steps = append(impl.steps, NewMetaDataCacheStep(config))
 
 	return impl
 }

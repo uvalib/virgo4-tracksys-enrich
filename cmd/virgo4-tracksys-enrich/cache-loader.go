@@ -15,7 +15,7 @@ type CacheLoader interface {
 	Lookup(string) (*TrackSysItemDetails, error)
 }
 
-// our singleton store
+// TracksysIdCache our singleton store
 var TracksysIdCache CacheLoader
 
 // this is our actual implementation

@@ -23,6 +23,8 @@ type ServiceConfig struct {
 
 	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
 
+	DigitalContentCacheBucket string // the name of the bucket for the digital content cache
+
 	WorkerQueueSize int // the inbound message queue size to feed the workers
 	Workers         int // the number of worker processes
 }
@@ -80,26 +82,30 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.WorkerQueueSize = envToInt("VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE")
 	cfg.Workers = envToInt("VIRGO4_TRACKSYS_ENRICH_WORKERS")
 
+	cfg.DigitalContentCacheBucket = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_BUCKET")
+
 	// maybe configure later
 	cfg.ApiDirectoryPath = "api/published"
 	cfg.ApiDetailsPath = "api/sirsi"
 	cfg.RewriteFields = map[string]string{"uva_availability_f_stored": "Online", "anon_availability_f_stored": "Online"}
 
-	log.Printf("[CONFIG] InQueueName          = [%s]", cfg.InQueueName)
-	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName)
-	log.Printf("[CONFIG] PollTimeOut          = [%d]", cfg.PollTimeOut)
-	log.Printf("[CONFIG] MessageBucketName    = [%s]", cfg.MessageBucketName)
+	log.Printf("[CONFIG] InQueueName               = [%s]", cfg.InQueueName)
+	log.Printf("[CONFIG] OutQueueName              = [%s]", cfg.OutQueueName)
+	log.Printf("[CONFIG] PollTimeOut               = [%d]", cfg.PollTimeOut)
+	log.Printf("[CONFIG] MessageBucketName         = [%s]", cfg.MessageBucketName)
 
-	log.Printf("[CONFIG] ServiceEndpoint      = [%s]", cfg.ServiceEndpoint)
-	log.Printf("[CONFIG] ServiceTimeout       = [%d]", cfg.ServiceTimeout)
-	log.Printf("[CONFIG] ApiDirectoryPath     = [%s]", cfg.ApiDirectoryPath)
-	log.Printf("[CONFIG] ApiDetailsPath       = [%s]", cfg.ApiDetailsPath)
-	log.Printf("[CONFIG] CacheAge             = [%d]", cfg.CacheAge)
+	log.Printf("[CONFIG] ServiceEndpoint           = [%s]", cfg.ServiceEndpoint)
+	log.Printf("[CONFIG] ServiceTimeout            = [%d]", cfg.ServiceTimeout)
+	log.Printf("[CONFIG] ApiDirectoryPath          = [%s]", cfg.ApiDirectoryPath)
+	log.Printf("[CONFIG] ApiDetailsPath            = [%s]", cfg.ApiDetailsPath)
+	log.Printf("[CONFIG] CacheAge                  = [%d]", cfg.CacheAge)
 
-	log.Printf("[CONFIG] RightsEndpoint       = [%s]", cfg.RightsEndpoint)
+	log.Printf("[CONFIG] RightsEndpoint            = [%s]", cfg.RightsEndpoint)
 
-	log.Printf("[CONFIG] WorkerQueueSize      = [%d]", cfg.WorkerQueueSize)
-	log.Printf("[CONFIG] Workers              = [%d]", cfg.Workers)
+	log.Printf("[CONFIG] DigitalContentCacheBucket = [%s]", cfg.DigitalContentCacheBucket)
+
+	log.Printf("[CONFIG] WorkerQueueSize           = [%d]", cfg.WorkerQueueSize)
+	log.Printf("[CONFIG] Workers                   = [%d]", cfg.Workers)
 
 	return &cfg
 }

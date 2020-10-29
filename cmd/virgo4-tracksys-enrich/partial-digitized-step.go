@@ -6,11 +6,13 @@ import (
 	"log"
 )
 
-// the name of the field we are interested in
+// BarcodeFieldName the name of the field we are interested in
 var BarcodeFieldName = "barcode_e_stored"
 
-// the name and value of the field to add if appropriate
+// PartiallyDigitizedFieldName the name of the field to add if appropriate
 var PartiallyDigitizedFieldName = "digitized_f_stored"
+
+// PartiallyDigitizedFieldValue the value of the field to add if appropriate
 var PartiallyDigitizedFieldValue = "partial"
 
 var errorNoBarcodes = fmt.Errorf("failed to extract barcode fields")

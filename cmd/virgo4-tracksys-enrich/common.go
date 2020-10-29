@@ -10,7 +10,7 @@ import (
 
 var ErrorTypeAssertion = fmt.Errorf("failure to type assert interface")
 
-// construct a tag pair and append it on to the end of the document
+// AppendXmlField construct a tag pair and append it on to the end of the document
 func AppendXmlField(message string, fieldName string, fieldValue string) string {
 
 	docEndTag := "</doc>"
@@ -21,7 +21,7 @@ func AppendXmlField(message string, fieldName string, fieldValue string) string 
 	return replaced
 }
 
-// remove the specified field from the document
+// RemoveXmlField remove the specified field from the document
 func RemoveXmlField(message string, fieldName string) string {
 
 	matchExpr := fmt.Sprintf("<field name=\"%s\">.*?</field>", fieldName)
@@ -29,7 +29,7 @@ func RemoveXmlField(message string, fieldName string) string {
 	return re.ReplaceAllString(message, "")
 }
 
-// extract multiple field values from the document
+// ExtractXmlFields extract multiple field values from the document
 func ExtractXmlFields(message string, fieldName string) []string {
 
 	matchExpr := fmt.Sprintf("<field name=\"%s\">(.*?)</field>", fieldName)
