@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
 	"log"
 	"text/template"
@@ -24,8 +25,8 @@ type MetadataPart struct {
 
 // this is our actual implementation
 type metadataCacheStepImpl struct {
-	s3proxy *S3Proxy            // our S3 abstraction
-	tmpl    *template.Template  // our pre-rendered template
+	s3proxy *S3Proxy           // our S3 abstraction
+	tmpl    *template.Template // our pre-rendered template
 }
 
 // NewMetaDataCacheStep - the factory
@@ -76,30 +77,45 @@ func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TrackSysIte
 
 func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TrackSysItemDetails, message *awssqs.Message) (string, error) {
 
-	// TEMP ONLY
-	data := MetadataCache{}
-	part := MetadataPart{}
-
-	part.Label = "A B C"
-	part.ManifestUrl = "https://iiifman.lib.virginia.edu/pid/uva-lib:1234"
-	part.PdfStatus = "READY"
-	part.PdfUrl = "https://pdfservice.lib.virginia.edu/pdf/uva-lib:1234"
-	part.Pid = "uva-lib:1234"
-    part.ThumbUrl = "https://iiif.lib.virginia.edu/iiif/uva-lib:1234/full/!125,200/0/default.jpg"
-
-	data.Id = tracksysDetails.SirsiId
-	data.Parts = []MetadataPart{ part }
-
-	var outBuffer bytes.Buffer
-	err := si.tmpl.Execute(&outBuffer, data)
+	// build the dataset for the template generation
+	md, err := si.buildTemplateData(tracksysDetails)
 	if err != nil {
-		log.Printf("ERROR: unable to render cache metadata for %s: %s", data.Id, err.Error())
+		log.Printf("ERROR: unable to build cache metadata for %s: %s", tracksysDetails.SirsiId, err.Error())
 		return "", err
 	}
-	log.Printf("INFO: cache metadata generated for %s", data.Id)
-	log.Printf( outBuffer.String() )
+
+	// render the template
+	var outBuffer bytes.Buffer
+	err = si.tmpl.Execute(&outBuffer, md)
+	if err != nil {
+		log.Printf("ERROR: unable to render cache metadata for %s: %s", tracksysDetails.SirsiId, err.Error())
+		return "", err
+	}
+	log.Printf("INFO: cache metadata generated for %s", tracksysDetails.SirsiId)
+	//log.Printf( outBuffer.String() )
 
 	return outBuffer.String(), nil
+}
+
+func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TrackSysItemDetails) (MetadataCache, error) {
+
+	md := MetadataCache{}
+	parts := make([]MetadataPart, 0)
+	md.Id = tracksysDetails.SirsiId
+	for _, item := range tracksysDetails.Items {
+		part := MetadataPart{}
+
+		part.ManifestUrl = item.BackendIIIFManifestUrl
+		part.Label = item.CallNumber
+		part.Pid = item.Pid
+		part.ThumbUrl = item.ThumbnailUrl
+		part.PdfUrl = fmt.Sprintf("%s/%s", tracksysDetails.PdfServiceRoot, item.Pid)
+		part.PdfStatus = "UNKNOWN"
+
+		parts = append(parts, part)
+	}
+	md.Parts = parts
+	return md, nil
 }
 
 //
