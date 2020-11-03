@@ -24,15 +24,10 @@ func newHttpClient(maxConnections int, timeout int) *http.Client {
 
 func httpGet(url string, client *http.Client) ([]byte, error) {
 
-	//fmt.Printf( "%s\n", s.url )
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	//req.Header.Set("Content-Type", "application/xml" )
-	//req.Header.Set("Accept", "application/json" )
 
 	var response *http.Response
 	count := 0
@@ -62,7 +57,12 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 			defer response.Body.Close()
 
 			if response.StatusCode != http.StatusOK {
-				log.Printf("ERROR: GET failed with status %d", response.StatusCode)
+				logLevel := "ERROR"
+				// log not found as informational instead of as an error
+				if response.StatusCode == http.StatusNotFound {
+					logLevel = "INFO"
+				}
+				log.Printf("%s: GET failed with status %d", logLevel, response.StatusCode)
 
 				body, _ := ioutil.ReadAll(response.Body)
 
