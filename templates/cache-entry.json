@@ -5,10 +5,10 @@
     {{if $i}}, {{end}}
     {
       "iiif_manifest_url": "{{$p.ManifestUrl}}",
+      "oembed_url": "{{$p.OembedUrl}}",
       "label": "{{$p.Label}}",
       {{- if .PdfUrl}}
       "pdf": {
-        "status": "{{$p.PdfStatus}}",
         "urls": {
           "delete": "{{$p.PdfUrl}}/delete",
           "download": "{{$p.PdfUrl}}/download",

@@ -20,13 +20,14 @@ type MetadataPart struct {
 	Pid         string
 	ThumbUrl    string
 	PdfUrl      string
-	PdfStatus   string
+	OembedUrl   string
 }
 
 // this is our actual implementation
 type metadataCacheStepImpl struct {
-	s3proxy *S3Proxy           // our S3 abstraction
-	tmpl    *template.Template // our pre-rendered template
+	oembedRoot string             // value from the configuration
+	s3proxy    *S3Proxy           // our S3 abstraction
+	tmpl       *template.Template // our pre-rendered template
 }
 
 // NewMetaDataCacheStep - the factory
@@ -35,6 +36,7 @@ func NewMetaDataCacheStep(config *ServiceConfig) PipelineStep {
 	// mock implementation here if necessary
 
 	impl := &metadataCacheStepImpl{}
+	impl.oembedRoot = config.OembedRoot
 	impl.s3proxy = NewS3Proxy(config)
 	impl.tmpl = template.Must(template.ParseFiles("templates/cache-entry.json"))
 	return impl
@@ -110,7 +112,7 @@ func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TrackSysItemD
 		part.Pid = item.Pid
 		part.ThumbUrl = item.ThumbnailUrl
 		part.PdfUrl = fmt.Sprintf("%s/%s", tracksysDetails.PdfServiceRoot, item.Pid)
-		part.PdfStatus = "UNKNOWN"
+		part.OembedUrl = fmt.Sprintf("%s/%s", si.oembedRoot, item.Pid)
 
 		parts = append(parts, part)
 	}

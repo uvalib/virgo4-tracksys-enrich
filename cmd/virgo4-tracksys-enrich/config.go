@@ -22,6 +22,7 @@ type ServiceConfig struct {
 	RewriteFields map[string]string // the fields we explicitly rewrite
 
 	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
+	OembedRoot     string // the oembed url root
 
 	DigitalContentCacheBucket string // the name of the bucket for the digital content cache
 
@@ -78,6 +79,7 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
 
 	cfg.RightsEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_RIGHTS_URL")
+	cfg.OembedRoot = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_OEMBED_ROOT")
 
 	cfg.WorkerQueueSize = envToInt("VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE")
 	cfg.Workers = envToInt("VIRGO4_TRACKSYS_ENRICH_WORKERS")
@@ -101,6 +103,7 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] CacheAge                  = [%d]", cfg.CacheAge)
 
 	log.Printf("[CONFIG] RightsEndpoint            = [%s]", cfg.RightsEndpoint)
+	log.Printf("[CONFIG] OembedRoot                = [%s]", cfg.OembedRoot)
 
 	log.Printf("[CONFIG] DigitalContentCacheBucket = [%s]", cfg.DigitalContentCacheBucket)
 
