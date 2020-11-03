@@ -85,7 +85,7 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 	marc_display_facets := []string{"true"}
 
 	additional_collection_facets, _ := si.extractAdditionalCollectionFacets(tracksysDetails)
-	alternate_id_facets, _ := si.extractAlternateIdFacets(tracksysDetails)
+	alternate_ids, _ := si.extractAlternateIds(tracksysDetails)
 	individual_call_number_display, _ := si.extractCallNumbers(tracksysDetails)
 	//iiif_presentation_metadata_display, err := si.extractIIIFManifest( tracksysDetails )
 	//if err != nil {
@@ -94,7 +94,11 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 	thumbnail_url_display, _ := si.extractThumbnailUrlDisplay(tracksysDetails)
 	rights_wrapper_url_display, _ := si.extractRightsWrapperUrlDisplay(tracksysDetails)
 	rights_wrapper_display, _ := si.extractRightsWrapperDisplay(tracksysDetails)
-	pdf_url_display, _ := si.extractPdfUrlDisplay(tracksysDetails)
+	pdf_url_display, _ := si.extractPdfRootUrlDisplay(tracksysDetails)
+	pdf_download_url_display, err := si.extractPdfDownloadUrlDisplay(tracksysDetails)
+	if err != nil {
+		return err
+	}
 	policy_facets, err := si.extractPolicyFacets(tracksysDetails)
 	if err != nil {
 		return err
@@ -110,7 +114,7 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 
 	additionalTags.WriteString(ConstructFieldTagSet("marc_display_f_stored", XmlEncodeValues(marc_display_facets)))
 	additionalTags.WriteString(ConstructFieldTagSet("additional_collection_f_stored", XmlEncodeValues(additional_collection_facets)))
-	additionalTags.WriteString(ConstructFieldTagSet("alternate_id_f_stored", XmlEncodeValues(alternate_id_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("alternate_id_f_stored", XmlEncodeValues(alternate_ids)))
 	additionalTags.WriteString(ConstructFieldTagSet("individual_call_number_a", XmlEncodeValues(individual_call_number_display)))
 	additionalTags.WriteString(ConstructFieldTagSet("thumbnail_url_a", XmlEncodeValues(thumbnail_url_display)))
 	additionalTags.WriteString(ConstructFieldTagSet("rights_wrapper_url_a", XmlEncodeValues(rights_wrapper_url_display)))
@@ -118,6 +122,13 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 	additionalTags.WriteString(ConstructFieldTagSet("pdf_url_a", XmlEncodeValues(pdf_url_display)))
 	additionalTags.WriteString(ConstructFieldTagSet("policy_f_stored", XmlEncodeValues(policy_facets)))
 	additionalTags.WriteString(ConstructFieldTagSet("despined_barcodes_a", XmlEncodeValues(despined_barcodes_display)))
+
+	// if we have a PDF download link (which means one is available)
+	if len( pdf_download_url_display ) != 0 {
+		additionalTags.WriteString(ConstructFieldTagSet("pdf_download_url_e_stored", XmlEncodeValues(pdf_download_url_display)))
+	}
+
+	additionalTags.WriteString(ConstructFieldTagSet("alternate_id_str_stored", XmlEncodeValues(alternate_ids)))
 
 	// a special case
 	//buf := ConstructFieldTagSet( "iiif_presentation_metadata_a", XmlEncodeValues( iiif_presentation_metadata_display ) )
@@ -168,7 +179,7 @@ func (si *tracksysEnrichStepImpl) extractAdditionalCollectionFacets(tracksysDeta
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractAlternateIdFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractAlternateIds(tracksysDetails TrackSysItemDetails) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.Pid) != 0 {
@@ -241,10 +252,30 @@ func (si *tracksysEnrichStepImpl) extractRightsWrapperDisplay(tracksysDetails Tr
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractPdfUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractPdfRootUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
 	res := make([]string, 0, 1)
 	if len(tracksysDetails.PdfServiceRoot) != 0 {
 		res = append(res, tracksysDetails.PdfServiceRoot)
+	}
+	return res, nil
+}
+
+func (si *tracksysEnrichStepImpl) extractPdfDownloadUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+	res := make([]string, 0, 1)
+	// we have a PDF root defined and the item contains just one part
+	if len(tracksysDetails.PdfServiceRoot) != 0 && len(tracksysDetails.Items) == 1 {
+		pid := tracksysDetails.Items[0].Pid
+		url := fmt.Sprintf("%s/%s/status", tracksysDetails.PdfServiceRoot, pid)
+		body, err := httpGet(url, si.httpClient)
+		if err == nil {
+			// if we have a PDF available
+			if string(body) == "READY" {
+				downloadUrl := fmt.Sprintf("%s/%s/download", tracksysDetails.PdfServiceRoot, pid)
+				res = append(res, downloadUrl)
+			}
+		} else {
+			// we will assume any error means a PDF is not available
+		}
 	}
 	return res, nil
 }
