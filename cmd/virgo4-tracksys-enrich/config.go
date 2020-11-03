@@ -24,6 +24,7 @@ type ServiceConfig struct {
 	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
 	OembedRoot     string // the oembed url root
 
+	DigitalContentCacheRoot   string // the root url of the digital content cache
 	DigitalContentCacheBucket string // the name of the bucket for the digital content cache
 
 	WorkerQueueSize int // the inbound message queue size to feed the workers
@@ -84,6 +85,7 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.WorkerQueueSize = envToInt("VIRGO4_TRACKSYS_ENRICH_WORK_QUEUE_SIZE")
 	cfg.Workers = envToInt("VIRGO4_TRACKSYS_ENRICH_WORKERS")
 
+	cfg.DigitalContentCacheRoot = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_ROOT_URL")
 	cfg.DigitalContentCacheBucket = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_BUCKET")
 
 	// maybe configure later
@@ -105,6 +107,7 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] RightsEndpoint            = [%s]", cfg.RightsEndpoint)
 	log.Printf("[CONFIG] OembedRoot                = [%s]", cfg.OembedRoot)
 
+	log.Printf("[CONFIG] DigitalContentCacheRoot   = [%s]", cfg.DigitalContentCacheRoot)
 	log.Printf("[CONFIG] DigitalContentCacheBucket = [%s]", cfg.DigitalContentCacheBucket)
 
 	log.Printf("[CONFIG] WorkerQueueSize           = [%d]", cfg.WorkerQueueSize)
