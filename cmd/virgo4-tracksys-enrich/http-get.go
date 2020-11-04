@@ -26,6 +26,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		log.Printf("ERROR: GET failed with error (%s)", err)
 		return nil, err
 	}
 
@@ -40,6 +41,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 		count++
 		if err != nil {
 			if canRetry(err) == false {
+				log.Printf("ERROR: GET failed with error (%s)", err)
 				return nil, err
 			}
 

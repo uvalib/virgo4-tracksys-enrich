@@ -58,7 +58,7 @@ func main() {
 			}
 
 		} else {
-			log.Printf("No messages available")
+			log.Printf("INFO: no messages available")
 		}
 	}
 }

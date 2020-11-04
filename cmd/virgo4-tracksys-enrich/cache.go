@@ -49,7 +49,7 @@ func (ci *cacheImpl) Reload(ids []string) {
 		}
 	}
 
-	log.Printf("Loaded cache with %d items", ci.c.ItemCount())
+	log.Printf("INFO: loaded cache with %d items", ci.c.ItemCount())
 }
 
 //

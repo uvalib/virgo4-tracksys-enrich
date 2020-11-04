@@ -61,7 +61,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, inbound <-chan aw
 
 			if count%1000 == 0 {
 				duration := time.Since(start)
-				log.Printf("Worker %d: processed %d messages (%0.2f tps)", id, count, float64(count)/duration.Seconds())
+				log.Printf("INFO: worker %d: processed %d messages (%0.2f tps)", id, count, float64(count)/duration.Seconds())
 			}
 
 		} else {
@@ -76,7 +76,7 @@ func worker(id int, config *ServiceConfig, aws awssqs.AWS_SQS, inbound <-chan aw
 				}
 
 				duration := time.Since(start)
-				log.Printf("Worker %d: processed %d messages (%0.2f tps) (flushing)", id, count, float64(count)/duration.Seconds())
+				log.Printf("INFO: worker %d: processed %d messages (%0.2f tps) (flushing)", id, count, float64(count)/duration.Seconds())
 
 				// reset the counts
 				blocksize = 0

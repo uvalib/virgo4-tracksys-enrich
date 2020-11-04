@@ -15,7 +15,7 @@ func (cl *cacheLoaderImpl) protocolDirectory(url string) ([]string, error) {
 	// split the body into a set of identifiers
 	tokens := strings.Split(string(body), ",")
 
-	log.Printf("Received directory of %d items", len(tokens))
+	log.Printf("INFO: received directory of %d items", len(tokens))
 	return tokens, nil
 }
 

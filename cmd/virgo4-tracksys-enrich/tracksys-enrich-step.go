@@ -124,7 +124,7 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 	additionalTags.WriteString(ConstructFieldTagSet("despined_barcodes_a", XmlEncodeValues(despined_barcodes_display)))
 
 	// if we have a PDF download link (which means one is available)
-	if len( pdf_download_url_display ) != 0 {
+	if len(pdf_download_url_display) != 0 {
 		additionalTags.WriteString(ConstructFieldTagSet("pdf_download_url_e_stored", XmlEncodeValues(pdf_download_url_display)))
 	}
 
