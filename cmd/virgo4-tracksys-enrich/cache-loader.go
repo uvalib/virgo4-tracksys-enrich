@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 // CacheLoader - our interface
 type CacheLoader interface {
 	Contains(string) (bool, error)
-	Lookup(string) (*TrackSysItemDetails, error)
+	Lookup(string) (*TracksysSirsiItem, error)
 }
 
 // TracksysIdCache our singleton store
@@ -20,9 +19,12 @@ var TracksysIdCache CacheLoader
 
 // this is our actual implementation
 type cacheLoaderImpl struct {
-	directoryUrl string       // the URL for requesting a directory of contents
-	detailsUrl   string       // the URL for requesting details
-	httpClient   *http.Client // our http client connection
+
+	loadApi    string       // the API path for loading the cache list
+	detailsApi string       // the API path for requesting details for items in the cache
+	multiMode  bool         // do we expect single or m ultiple items from the endpoint
+
+	httpClient *http.Client // our http client connection
 
 	cacheImpl   Cache         // the actual cache
 	cacheLoaded time.Time     // when we last repopulated the cache
@@ -38,8 +40,9 @@ func NewCacheLoader(config *ServiceConfig) error {
 
 	cache := NewCache()
 	impl := &cacheLoaderImpl{cacheImpl: cache}
-	impl.directoryUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDirectoryPath)
-	impl.detailsUrl = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.ApiDetailsPath)
+	impl.multiMode = config.Mode == "sirsi"
+	impl.loadApi = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.CacheLoadApi)
+	impl.detailsApi = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.CacheDetailsApi)
 	impl.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
 	// configure the http client
@@ -74,33 +77,43 @@ func (cl *cacheLoaderImpl) Contains(id string) (bool, error) {
 	return cl.cacheImpl.Contains(id), nil
 }
 
-// Lookup - lookup an item in the cache
-func (cl *cacheLoaderImpl) Lookup(id string) (*TrackSysItemDetails, error) {
+// Lookup - lookup an item... we know (or think we know) it exists so we
+// get the details from Tracksys
+func (cl *cacheLoaderImpl) Lookup(id string) (*TracksysSirsiItem, error) {
 
-	details, err := cl.protocolDetails(fmt.Sprintf("%s/%s", cl.detailsUrl, id))
-	if err != nil {
-		return nil, err
+	var tsItem *TracksysSirsiItem
+	var err error
+
+	// we expect sirsi items from the details API
+	if cl.multiMode == true {
+		tsItem, err = cl.protocolGetSirsiDetails(fmt.Sprintf("%s/%s", cl.detailsApi, id))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var tsPart *TracksysPart
+		tsPart, err = cl.protocolGetPidDetails(fmt.Sprintf("%s/%s", cl.detailsApi, id))
+		if err != nil {
+			return nil, err
+		}
+		item := []TracksysPart{ *tsPart }
+		tsItem = &TracksysSirsiItem{ Items: item }
 	}
 
-	ts, err := cl.decodeTracksysPayload(details)
-	if err != nil {
-		return nil, err
-	}
-
-	return ts, nil
+	return tsItem, nil
 }
 
 // reload the cache
 func (cl *cacheLoaderImpl) reload() error {
 
-	contents, err := cl.protocolDirectory(cl.directoryUrl)
+	contents, err := cl.protocolGetKnownIds(cl.loadApi)
 
 	// after discussions with Mike, we determined that failing when attempting to reload the cache is a fatal set of
 	// circumstances and we should not continue to process items
 	fatalIfError(err)
 
 	// reload the cache
-	cl.cacheImpl.Reload(contents)
+	cl.cacheImpl.Reload(contents.Items)
 	cl.cacheLoaded = time.Now()
 
 	return nil
@@ -110,18 +123,6 @@ func (cl *cacheLoaderImpl) cacheStale() bool {
 
 	duration := time.Since(cl.cacheLoaded)
 	return duration.Seconds() > cl.cacheMaxAge.Seconds()
-}
-
-// decode the Tracksys payload from the supplied payload
-func (cl *cacheLoaderImpl) decodeTracksysPayload(payload []byte) (*TrackSysItemDetails, error) {
-
-	td := TrackSysItemDetails{}
-	err := json.Unmarshal(payload, &td)
-	if err != nil {
-		log.Printf("ERROR: json unmarshal: %s", err)
-		return nil, err
-	}
-	return &td, nil
 }
 
 //

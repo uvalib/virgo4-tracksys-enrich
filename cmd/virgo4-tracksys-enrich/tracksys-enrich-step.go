@@ -43,11 +43,7 @@ func (si *tracksysEnrichStepImpl) Name() string {
 
 func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, data interface{}) (bool, interface{}, error) {
 
-	// we have determined that we do not want to enrich certain class of item
-	//shouldEnrich := si.enrichableItem(message)
-	//if shouldEnrich == true {
-
-	tracksysData, ok := data.(TrackSysItemDetails)
+	tracksysData, ok := data.(TracksysSirsiItem)
 	if ok == false {
 		log.Printf("ERROR: failed to type assert into known payload")
 		return false, data, ErrorTypeAssertion
@@ -57,26 +53,11 @@ func (si *tracksysEnrichStepImpl) Process(message *awssqs.Message, data interfac
 	if err != nil {
 		return false, data, err
 	}
-	//}
 
 	return true, data, nil
 }
 
-// there are certain classes of item that should not be enriched, not sure why but at the moment tracksys times
-// out when we request them.
-//func (si *tracksysEnrichStepImpl) enrichableItem(message *awssqs.Message) bool {
-//
-//	// search for the "serials" facade field
-//	facetTag := ConstructFieldTagPair("pool_f_stored", "serials")
-//	if strings.Contains(string(message.Payload), facetTag) {
-//		log.Printf("INFO: found %s in payload", facetTag)
-//		return false
-//	}
-//
-//	return true
-//}
-
-func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDetails, message *awssqs.Message) error {
+func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TracksysSirsiItem, message *awssqs.Message) error {
 
 	// extract the information from the tracksys structure
 	format_facets, _ := si.extractFormatFacets(tracksysDetails)
@@ -149,12 +130,12 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TrackSysItemDe
 	return nil
 }
 
-func (si *tracksysEnrichStepImpl) extractFormatFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractFormatFacets(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := []string{"Online"}
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractFeatureFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractFeatureFacets(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 5)
 	res = append(res, "availability")
 	res = append(res, "iiif")
@@ -166,12 +147,12 @@ func (si *tracksysEnrichStepImpl) extractFeatureFacets(tracksysDetails TrackSysI
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractSourceFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractSourceFacets(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := []string{"UVA Library Digital Repository"}
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractAdditionalCollectionFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractAdditionalCollectionFacets(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 1)
 	if len(tracksysDetails.Collection) != 0 {
 		res = append(res, tracksysDetails.Collection)
@@ -179,7 +160,7 @@ func (si *tracksysEnrichStepImpl) extractAdditionalCollectionFacets(tracksysDeta
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractAlternateIds(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractAlternateIds(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.Pid) != 0 {
@@ -189,7 +170,7 @@ func (si *tracksysEnrichStepImpl) extractAlternateIds(tracksysDetails TrackSysIt
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractCallNumbers(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractCallNumbers(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.CallNumber) != 0 {
@@ -199,7 +180,7 @@ func (si *tracksysEnrichStepImpl) extractCallNumbers(tracksysDetails TrackSysIte
 	return res, nil
 }
 
-//func (e *tracksysEnrichStepImpl) extractIIIFManifest(tracksysDetails TrackSysItemDetails) ([]string, error) {
+//func (e *tracksysEnrichStepImpl) extractIIIFManifest(tracksysDetails TracksysSirsiItem) ([]string, error) {
 //
 //	urls := make([]string, 0, 10)
 //	for _, i := range tracksysDetails.Items {
@@ -222,7 +203,7 @@ func (si *tracksysEnrichStepImpl) extractCallNumbers(tracksysDetails TrackSysIte
 //	return res, nil
 //}
 
-func (si *tracksysEnrichStepImpl) extractThumbnailUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractThumbnailUrlDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.ThumbnailUrl) != 0 {
@@ -232,7 +213,7 @@ func (si *tracksysEnrichStepImpl) extractThumbnailUrlDisplay(tracksysDetails Tra
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractRightsWrapperUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractRightsWrapperUrlDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.RightsWrapperUrl) != 0 {
@@ -242,7 +223,7 @@ func (si *tracksysEnrichStepImpl) extractRightsWrapperUrlDisplay(tracksysDetails
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractRightsWrapperDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractRightsWrapperDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 10)
 	for _, i := range tracksysDetails.Items {
 		if len(i.RightsWrapperText) != 0 {
@@ -252,7 +233,7 @@ func (si *tracksysEnrichStepImpl) extractRightsWrapperDisplay(tracksysDetails Tr
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractPdfRootUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractPdfRootUrlDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 1)
 	if len(tracksysDetails.PdfServiceRoot) != 0 {
 		res = append(res, tracksysDetails.PdfServiceRoot)
@@ -260,7 +241,7 @@ func (si *tracksysEnrichStepImpl) extractPdfRootUrlDisplay(tracksysDetails Track
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractPdfDownloadUrlDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractPdfDownloadUrlDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 	res := make([]string, 0, 1)
 	// we have a PDF root defined and the item contains just one part
 	if len(tracksysDetails.PdfServiceRoot) != 0 && len(tracksysDetails.Items) == 1 {
@@ -280,7 +261,7 @@ func (si *tracksysEnrichStepImpl) extractPdfDownloadUrlDisplay(tracksysDetails T
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractPolicyFacets(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractPolicyFacets(tracksysDetails TracksysSirsiItem) ([]string, error) {
 
 	res := make([]string, 0, 1)
 	for _, i := range tracksysDetails.Items {
@@ -302,7 +283,7 @@ func (si *tracksysEnrichStepImpl) extractPolicyFacets(tracksysDetails TrackSysIt
 	return res, nil
 }
 
-func (si *tracksysEnrichStepImpl) extractDespinedBarcodesDisplay(tracksysDetails TrackSysItemDetails) ([]string, error) {
+func (si *tracksysEnrichStepImpl) extractDespinedBarcodesDisplay(tracksysDetails TracksysSirsiItem) ([]string, error) {
 
 	res := make([]string, 0, 10)
 	if tracksysDetails.Collection == "Gannon Collection" {

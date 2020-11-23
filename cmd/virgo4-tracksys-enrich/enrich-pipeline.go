@@ -40,15 +40,17 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	impl := &pipelineImpl{}
 	impl.steps = make([]PipelineStep, 0)
 
-	// the pipeline consists of 4 steps:
+	// the pipeline consists of 4 possible steps:
 	//  1. tracksys extract step
-	//  2. tracksys enrich step
+	//  2. tracksys enrich step (only fir Sirsi items)
 	//  3. field rewrite step
 	//  4. partial digitization step
 	//  5. metadata cache step
 
 	impl.steps = append(impl.steps, NewTracksysExtractStep(config))
-	impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
+	if config.Mode == "sirsi" {
+		impl.steps = append(impl.steps, NewTracksysEnrichStep(config))
+	}
 	impl.steps = append(impl.steps, NewFieldRewriteStep(config))
 	impl.steps = append(impl.steps, NewPartialDigitizedStep(config))
 	impl.steps = append(impl.steps, NewMetaDataCacheStep(config))

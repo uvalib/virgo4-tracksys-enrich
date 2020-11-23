@@ -8,16 +8,20 @@ import (
 
 // ServiceConfig defines all of the service configuration parameters
 type ServiceConfig struct {
+
+	Mode string // are we in "sirsi" mode or "other" mode
+
 	InQueueName       string // SQS queue name for inbound documents
 	OutQueueName      string // SQS queue name for outbound documents
 	PollTimeOut       int64  // the SQS queue timeout (in seconds)
 	MessageBucketName string // the bucket to use for large messages
 
-	ServiceEndpoint  string // the URL of the tracksys endpoint
-	ServiceTimeout   int    // service timeout (in seconds)
-	ApiDirectoryPath string // the path component of the published API
-	ApiDetailsPath   string // the path component of the details API
-	CacheAge         int    // how frequently do we reload the cache (in seconds)
+	ServiceEndpoint string // the URL of the tracksys endpoint
+	ServiceTimeout  int    // service timeout (in seconds)
+
+	CacheLoadApi    string // the API path used to populate the cache
+	CacheDetailsApi string // the API path used to get the cache details
+	CacheAge        int    // how frequently do we reload the cache (in seconds)
 
 	RewriteFields map[string]string // the fields we explicitly rewrite
 
@@ -70,6 +74,19 @@ func LoadConfiguration() *ServiceConfig {
 
 	var cfg ServiceConfig
 
+	//
+	// Sirsi mode means we are processing Sirsi items in the pipeline. These are
+	// identified by the unique Sirsi catalog key (catkey) and have zero or more
+	// digital items available in tracksys
+	//
+	// Non-sirsi mode means we are processing other kinds of digital items. These
+	// are identified by the unique "part ID" (pid) and have zero or one digital
+	// items available in tracksys.
+
+	// we use different tracksys API endpoints to process the different types
+
+	cfg.Mode = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_MODE")
+
 	cfg.InQueueName = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_IN_QUEUE")
 	cfg.OutQueueName = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_OUT_QUEUE")
 	cfg.MessageBucketName = ensureSetAndNonEmpty("VIRGO4_SQS_MESSAGE_BUCKET")
@@ -77,7 +94,6 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.ServiceEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_SERVICE_URL")
 	cfg.ServiceTimeout = envToInt("VIRGO4_TRACKSYS_ENRICH_SERVICE_TIMEOUT")
-	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
 
 	cfg.RightsEndpoint = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_RIGHTS_URL")
 	cfg.OembedRoot = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_OEMBED_ROOT")
@@ -88,11 +104,14 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.DigitalContentCacheRoot = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_ROOT_URL")
 	cfg.DigitalContentCacheBucket = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_BUCKET")
 
+	cfg.CacheLoadApi = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_LOAD")
+	cfg.CacheDetailsApi = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_DETAILS")
+	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
+
 	// maybe configure later
-	cfg.ApiDirectoryPath = "api/published"
-	cfg.ApiDetailsPath = "api/sirsi"
 	cfg.RewriteFields = map[string]string{"uva_availability_f_stored": "Online", "anon_availability_f_stored": "Online"}
 
+	log.Printf("[CONFIG] Mode                      = [%s]", cfg.Mode)
 	log.Printf("[CONFIG] InQueueName               = [%s]", cfg.InQueueName)
 	log.Printf("[CONFIG] OutQueueName              = [%s]", cfg.OutQueueName)
 	log.Printf("[CONFIG] PollTimeOut               = [%d]", cfg.PollTimeOut)
@@ -100,8 +119,8 @@ func LoadConfiguration() *ServiceConfig {
 
 	log.Printf("[CONFIG] ServiceEndpoint           = [%s]", cfg.ServiceEndpoint)
 	log.Printf("[CONFIG] ServiceTimeout            = [%d]", cfg.ServiceTimeout)
-	log.Printf("[CONFIG] ApiDirectoryPath          = [%s]", cfg.ApiDirectoryPath)
-	log.Printf("[CONFIG] ApiDetailsPath            = [%s]", cfg.ApiDetailsPath)
+	log.Printf("[CONFIG] CacheLoadApi              = [%s]", cfg.CacheLoadApi)
+	log.Printf("[CONFIG] CacheDetailsApi           = [%s]", cfg.CacheDetailsApi)
 	log.Printf("[CONFIG] CacheAge                  = [%d]", cfg.CacheAge)
 
 	log.Printf("[CONFIG] RightsEndpoint            = [%s]", cfg.RightsEndpoint)

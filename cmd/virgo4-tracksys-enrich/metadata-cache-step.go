@@ -51,7 +51,7 @@ func (si *metadataCacheStepImpl) Name() string {
 
 func (si *metadataCacheStepImpl) Process(message *awssqs.Message, data interface{}) (bool, interface{}, error) {
 
-	tracksysData, ok := data.(TrackSysItemDetails)
+	tracksysData, ok := data.(TracksysSirsiItem)
 	if ok == false {
 		log.Printf("ERROR: failed to type assert into known payload")
 		return false, data, ErrorTypeAssertion
@@ -75,7 +75,7 @@ func (si *metadataCacheStepImpl) Process(message *awssqs.Message, data interface
 	return true, data, nil
 }
 
-func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TrackSysItemDetails, message *awssqs.Message) error {
+func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSirsiItem, message *awssqs.Message) error {
 
 	metadata, err := si.createMetadataContent(tracksysDetails, message)
 	if err != nil {
@@ -90,7 +90,7 @@ func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TrackSysIte
 	return nil
 }
 
-func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TrackSysItemDetails, message *awssqs.Message) (string, error) {
+func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TracksysSirsiItem, message *awssqs.Message) (string, error) {
 
 	// build the dataset for the template generation
 	md, err := si.buildTemplateData(tracksysDetails)
@@ -112,7 +112,7 @@ func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TrackSysI
 	return outBuffer.String(), nil
 }
 
-func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TrackSysItemDetails) (MetadataCache, error) {
+func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TracksysSirsiItem) (MetadataCache, error) {
 
 	md := MetadataCache{}
 	parts := make([]MetadataPart, 0)

@@ -43,7 +43,7 @@ func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interf
 	if len(barcodes) != 0 {
 		log.Printf("INFO: extracted %d barcode field(s)", len(barcodes))
 
-		tracksysData, ok := data.(TrackSysItemDetails)
+		tracksysData, ok := data.(TracksysSirsiItem)
 		if ok == false {
 			log.Printf("ERROR: failed to type assert into known payload")
 			return false, data, ErrorTypeAssertion
