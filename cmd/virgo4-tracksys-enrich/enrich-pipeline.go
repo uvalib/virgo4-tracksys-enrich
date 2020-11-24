@@ -55,6 +55,7 @@ func NewEnrichPipeline(config *ServiceConfig) Pipeline {
 	impl.steps = append(impl.steps, NewPartialDigitizedStep(config))
 	impl.steps = append(impl.steps, NewMetaDataCacheStep(config))
 
+	log.Printf("INFO: enrich pipeline configured with %d steps", len( impl.steps ))
 	return impl
 }
 
@@ -62,6 +63,7 @@ func (pi *pipelineImpl) Process(message *awssqs.Message) (int, error) {
 
 	var payload interface{}
 	for ix, step := range pi.steps {
+		//log.Printf("DEBUG: running step %d (%s)", ix, step.Name())
 		doNext, data, err := step.Process(message, payload)
 
 		// error happened during a step

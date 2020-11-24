@@ -43,7 +43,7 @@ func (ci *cacheImpl) Reload(ids []string) {
 		if len(ids[ix]) != 0 {
 			_, found := ci.c.Get(ids[ix])
 			if found == false {
-				//fmt.Printf("[%s]\n", ids[ix] )
+				//log.Printf("DEBUG: cache: %s", ids[ix] )
 				ci.c.Set(ids[ix], 0, cache.NoExpiration)
 			}
 		}

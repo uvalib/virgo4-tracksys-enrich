@@ -47,6 +47,7 @@ func (si *tracksysExtractStepImpl) Process(message *awssqs.Message, _ interface{
 			// we found the item in tracksys
 			return true, *trackSysDetails, nil
 		} else {
+			//log.Printf("DEBUG: %s is not in the cache, no further processing", id )
 			// item is not in tracksys, no further processing required
 			return false, nil, nil
 		}
