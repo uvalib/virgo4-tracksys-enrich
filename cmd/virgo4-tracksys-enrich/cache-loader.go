@@ -19,10 +19,9 @@ var TracksysIdCache CacheLoader
 
 // this is our actual implementation
 type cacheLoaderImpl struct {
-
-	loadApi    string       // the API path for loading the cache list
-	detailsApi string       // the API path for requesting details for items in the cache
-	multiMode  bool         // do we expect single or m ultiple items from the endpoint
+	loadApi    string // the API path for loading the cache list
+	detailsApi string // the API path for requesting details for items in the cache
+	multiMode  bool   // do we expect single or m ultiple items from the endpoint
 
 	httpClient *http.Client // our http client connection
 
@@ -96,8 +95,8 @@ func (cl *cacheLoaderImpl) Lookup(id string) (*TracksysSirsiItem, error) {
 		if err != nil {
 			return nil, err
 		}
-		item := []TracksysPart{ *tsPart }
-		tsItem = &TracksysSirsiItem{ Items: item }
+		item := []TracksysPart{*tsPart}
+		tsItem = &TracksysSirsiItem{Items: item}
 	}
 
 	return tsItem, nil

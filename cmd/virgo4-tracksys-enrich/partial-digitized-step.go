@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
 	"log"
 )
@@ -15,7 +14,7 @@ var PartiallyDigitizedFieldName = "digitized_f_stored"
 // PartiallyDigitizedFieldValue the value of the field to add if appropriate
 var PartiallyDigitizedFieldValue = "partial"
 
-var errorNoBarcodes = fmt.Errorf("failed to extract barcode fields")
+//var errorNoBarcodes = fmt.Errorf("failed to extract barcode fields")
 
 // this is our actual implementation
 type partialDigitizedStepImpl struct {
@@ -62,8 +61,10 @@ func (si *partialDigitizedStepImpl) Process(message *awssqs.Message, data interf
 		return true, data, nil
 	}
 
-	log.Printf("ERROR: failed to extract barcode fields")
-	return true, data, errorNoBarcodes
+	// we are now processing items without barcodes so this error case is not
+	// terminal to the pipeline
+	log.Printf("WARNING: failed to extract barcode fields")
+	return true, data, nil
 }
 
 //

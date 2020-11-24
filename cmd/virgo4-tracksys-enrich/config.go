@@ -8,7 +8,6 @@ import (
 
 // ServiceConfig defines all of the service configuration parameters
 type ServiceConfig struct {
-
 	Mode string // are we in "sirsi" mode or "other" mode
 
 	InQueueName       string // SQS queue name for inbound documents

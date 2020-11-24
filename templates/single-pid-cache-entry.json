@@ -1,0 +1,16 @@
+{
+  "id":"{{.Pid}}",
+  "iiif_manifest_url": "{{$.ManifestUrl}}",
+  "oembed_url": "{{$.OembedUrl}}",
+  {{- if .PdfUrl}}
+     "pdf": {
+        "urls": {
+          "delete": "{{$.PdfUrl}}/delete",
+          "download": "{{$.PdfUrl}}/download",
+          "generate": "{{$.PdfUrl}}",
+          "status": "{{$.PdfUrl}}/status"
+        }
+     },
+  {{- end}}
+  "thumbnail_url":"{{$.ThumbUrl}}"
+}

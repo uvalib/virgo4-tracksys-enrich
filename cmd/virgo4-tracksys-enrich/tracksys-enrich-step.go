@@ -254,9 +254,9 @@ func (si *tracksysEnrichStepImpl) extractPdfDownloadUrlDisplay(tracksysDetails T
 				downloadUrl := fmt.Sprintf("%s/%s/download", tracksysDetails.PdfServiceRoot, pid)
 				res = append(res, downloadUrl)
 			}
-		} else {
-			// we will assume any error means a PDF is not available
-		}
+		} //else {
+		// we will assume any error means a PDF is not available
+		//}
 	}
 	return res, nil
 }

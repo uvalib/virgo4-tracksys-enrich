@@ -1,6 +1,6 @@
 package main
 
-// a "Sirsi" item from tracksys, can contain multiple parts
+// TracksysSirsiItem - a "Sirsi" item from tracksys, can contain multiple parts
 type TracksysSirsiItem struct {
 	SirsiId        string `json:"sirsiId"`
 	PdfServiceRoot string `json:"pdfServiceRoot"`
@@ -8,7 +8,7 @@ type TracksysSirsiItem struct {
 	Items          []TracksysPart
 }
 
-// a "part" item from tracksys, represents a digital item/asset
+// TracksysPart - a "part" item from tracksys, represents a digital item/asset
 type TracksysPart struct {
 	Pid                    string   `json:"pid"`
 	CallNumber             string   `json:"callNumber"`
@@ -19,9 +19,10 @@ type TracksysPart struct {
 	RightsWrapperText      string   `json:"rightsWrapperText"`
 	BackendIIIFManifestUrl string   `json:"backendIIIFManifestUrl"`
 	ThumbnailUrl           string   `json:"thumbnailUrl"`
+	PdfServiceRoot         string   `json:"pdfServiceRoot,omitempty"`
 }
 
-// when we query tracksys about which items it has
+// TracksysKnown - when we query tracksys about which items it has
 type TracksysKnown struct {
 	Items []string `json:"items"`
 }

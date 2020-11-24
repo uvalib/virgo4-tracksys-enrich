@@ -8,12 +8,13 @@ import (
 	"text/template"
 )
 
-// the structure we will template for the metadata cache entry
+// MetadataCache - the structure we will template for the metadata cache entry
 type MetadataCache struct {
 	Id    string
 	Parts []MetadataPart
 }
 
+// MetadataPart - the structure we will template for the metadata cache entry
 type MetadataPart struct {
 	ManifestUrl string
 	Label       string
@@ -41,7 +42,11 @@ func NewMetaDataCacheStep(config *ServiceConfig) PipelineStep {
 	impl := &metadataCacheStepImpl{}
 	impl.config = config
 	impl.s3proxy = NewS3Proxy(config)
-	impl.tmpl = template.Must(template.ParseFiles("templates/cache-entry.json"))
+	if config.Mode == "sirsi" {
+		impl.tmpl = template.Must(template.ParseFiles("templates/multi-pid-cache-entry.json"))
+	} else {
+		impl.tmpl = template.Must(template.ParseFiles("templates/single-pid-cache-entry.json"))
+	}
 	return impl
 }
 
@@ -77,12 +82,21 @@ func (si *metadataCacheStepImpl) Process(message *awssqs.Message, data interface
 
 func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSirsiItem, message *awssqs.Message) error {
 
-	metadata, err := si.createMetadataContent(tracksysDetails, message)
+	var err error
+	var metadata string
+	var key string
+	if si.config.Mode == "sirsi" {
+		key = tracksysDetails.SirsiId
+		metadata, err = si.createMultiPidMetadataContent(tracksysDetails)
+	} else {
+		key = normalizeId(tracksysDetails.Items[0].Pid)
+		metadata, err = si.createSinglePidMetadataContent(tracksysDetails)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	key := tracksysDetails.SirsiId
 	err = si.s3proxy.WriteToCache(key, metadata)
 	if err != nil {
 		return err
@@ -90,33 +104,47 @@ func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSir
 	return nil
 }
 
-func (si *metadataCacheStepImpl) createMetadataContent(tracksysDetails TracksysSirsiItem, message *awssqs.Message) (string, error) {
+func (si *metadataCacheStepImpl) createMultiPidMetadataContent(tracksysDetails TracksysSirsiItem) (string, error) {
 
 	// build the dataset for the template generation
-	md, err := si.buildTemplateData(tracksysDetails)
-	if err != nil {
-		log.Printf("ERROR: unable to build cache metadata for %s: %s", tracksysDetails.SirsiId, err.Error())
-		return "", err
-	}
+	td := si.buildMultiPidTemplateData(tracksysDetails)
 
 	// render the template
 	var outBuffer bytes.Buffer
-	err = si.tmpl.Execute(&outBuffer, md)
+	err := si.tmpl.Execute(&outBuffer, td)
 	if err != nil {
-		log.Printf("ERROR: unable to render cache metadata for %s: %s", tracksysDetails.SirsiId, err.Error())
+		log.Printf("ERROR: unable to render cache metadata for %s: %s", td.Id, err.Error())
 		return "", err
 	}
-	log.Printf("INFO: cache metadata generated for %s", tracksysDetails.SirsiId)
+	log.Printf("INFO: cache metadata generated for %s", td.Id)
 	//log.Printf( outBuffer.String() )
 
 	return outBuffer.String(), nil
 }
 
-func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TracksysSirsiItem) (MetadataCache, error) {
+func (si *metadataCacheStepImpl) createSinglePidMetadataContent(tracksysDetails TracksysSirsiItem) (string, error) {
 
-	md := MetadataCache{}
+	// build the dataset for the template generation
+	td := si.buildSinglePidTemplateData(tracksysDetails)
+
+	// render the template
+	var outBuffer bytes.Buffer
+	err := si.tmpl.Execute(&outBuffer, td)
+	if err != nil {
+		log.Printf("ERROR: unable to render cache metadata for %s: %s", td.Pid, err.Error())
+		return "", err
+	}
+	log.Printf("INFO: cache metadata generated for %s", td.Pid)
+	//log.Printf(outBuffer.String())
+
+	return outBuffer.String(), nil
+}
+
+func (si *metadataCacheStepImpl) buildMultiPidTemplateData(tracksysDetails TracksysSirsiItem) MetadataCache {
+
+	mc := MetadataCache{}
 	parts := make([]MetadataPart, 0)
-	md.Id = tracksysDetails.SirsiId
+	mc.Id = tracksysDetails.SirsiId
 	for _, item := range tracksysDetails.Items {
 		part := MetadataPart{}
 
@@ -129,8 +157,21 @@ func (si *metadataCacheStepImpl) buildTemplateData(tracksysDetails TracksysSirsi
 
 		parts = append(parts, part)
 	}
-	md.Parts = parts
-	return md, nil
+	mc.Parts = parts
+	return mc
+}
+
+func (si *metadataCacheStepImpl) buildSinglePidTemplateData(tracksysDetails TracksysSirsiItem) MetadataPart {
+
+	mp := MetadataPart{}
+	mp.Pid = tracksysDetails.Items[0].Pid
+	mp.ManifestUrl = tracksysDetails.Items[0].BackendIIIFManifestUrl
+	mp.Label = tracksysDetails.Items[0].CallNumber
+	mp.Pid = tracksysDetails.Items[0].Pid
+	mp.ThumbUrl = tracksysDetails.Items[0].ThumbnailUrl
+	mp.PdfUrl = fmt.Sprintf("%s/%s", tracksysDetails.Items[0].PdfServiceRoot, mp.Pid)
+	mp.OembedUrl = fmt.Sprintf("%s/%s", si.config.OembedRoot, mp.Pid)
+	return mp
 }
 
 //
