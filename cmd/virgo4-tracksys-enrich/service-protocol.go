@@ -39,17 +39,33 @@ func (cl *cacheLoaderImpl) protocolGetSirsiDetails(url string) (*TracksysSirsiIt
 	return &tsSirsi, nil
 }
 
-func (cl *cacheLoaderImpl) protocolGetPidDetails(url string) (*TracksysPart, error) {
+func (cl *cacheLoaderImpl) protocolGetImageDetails(url string) (*TracksysPart, error) {
 
 	payload, err := httpGet(url, cl.httpClient)
 	if err != nil {
 		return nil, err
 	}
 
-	tsPid := TracksysPart{}
-	err = json.Unmarshal(payload, &tsPid)
+	tsPart := TracksysPart{}
+	err = json.Unmarshal(payload, &tsPart)
 	if err != nil {
 		log.Printf("ERROR: json unmarshal of TracksysPart: %s", err)
+		return nil, err
+	}
+	return &tsPart, nil
+}
+
+func (cl *cacheLoaderImpl) protocolGetPidDetails(url string) (*TracksysPidItem, error) {
+
+	payload, err := httpGet(url, cl.httpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	tsPid := TracksysPidItem{}
+	err = json.Unmarshal(payload, &tsPid)
+	if err != nil {
+		log.Printf("ERROR: json unmarshal of TracksysPidItem: %s", err)
 		return nil, err
 	}
 	return &tsPid, nil

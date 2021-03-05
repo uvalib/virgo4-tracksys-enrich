@@ -21,6 +21,7 @@ var TracksysIdCache CacheLoader
 type cacheLoaderImpl struct {
 	loadApi    string // the API path for loading the cache list
 	detailsApi string // the API path for requesting details for items in the cache
+	pidApi     string // the API path for requesting PID details
 	multiMode  bool   // do we expect single or m ultiple items from the endpoint
 
 	httpClient *http.Client // our http client connection
@@ -42,6 +43,7 @@ func NewCacheLoader(config *ServiceConfig) error {
 	impl.multiMode = config.Mode == "sirsi"
 	impl.loadApi = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.CacheLoadApi)
 	impl.detailsApi = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.CacheDetailsApi)
+	impl.pidApi = fmt.Sprintf("%s/%s", config.ServiceEndpoint, config.PidDetailsApi)
 	impl.cacheMaxAge = time.Duration(config.CacheAge) * time.Second
 
 	// configure the http client
@@ -83,15 +85,29 @@ func (cl *cacheLoaderImpl) Lookup(id string) (*TracksysSirsiItem, error) {
 	var tsItem *TracksysSirsiItem
 	var err error
 
-	// we expect sirsi items from the details API
 	if cl.multiMode == true {
+		// we expect sirsi items from the details API
 		tsItem, err = cl.protocolGetSirsiDetails(fmt.Sprintf("%s/%s", cl.detailsApi, id))
 		if err != nil {
 			return nil, err
 		}
+
+		var pidItem *TracksysPidItem
+		// for each of the parts in the item
+		for ix, part := range tsItem.Items {
+			// get some PID details so we can determine if this is an OCR candidate
+			pidItem, err = cl.protocolGetPidDetails(fmt.Sprintf("%s/%s", cl.pidApi, part.Pid))
+			if err != nil {
+				return nil, err
+			}
+
+			tsItem.Items[ix].OcrCandidate = pidItem.OcrCandidate
+		}
+
 	} else {
+		// we expect image (partial) items from the details API
 		var tsPart *TracksysPart
-		tsPart, err = cl.protocolGetPidDetails(fmt.Sprintf("%s/%s", cl.detailsApi, id))
+		tsPart, err = cl.protocolGetImageDetails(fmt.Sprintf("%s/%s", cl.detailsApi, id))
 		if err != nil {
 			return nil, err
 		}

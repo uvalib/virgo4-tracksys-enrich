@@ -7,6 +7,16 @@
       "iiif_manifest_url": "{{$p.ManifestUrl}}",
       "oembed_url": "{{$p.OembedUrl}}",
       "label": "{{$p.Label}}",
+      {{- if .OcrUrl}}
+      "ocr": {
+        "urls": {
+          "delete": "{{$p.OcrUrl}}/delete",
+          "download": "{{$p.OcrUrl}}/download",
+          "generate": "{{$p.OcrUrl}}",
+          "status": "{{$p.OcrUrl}}/status"
+        }
+      },
+      {{- end}}
       {{- if .PdfUrl}}
       "pdf": {
         "urls": {

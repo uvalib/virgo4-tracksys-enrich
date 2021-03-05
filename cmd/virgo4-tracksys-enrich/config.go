@@ -22,6 +22,9 @@ type ServiceConfig struct {
 	CacheDetailsApi string // the API path used to get the cache details
 	CacheAge        int    // how frequently do we reload the cache (in seconds)
 
+	PidDetailsApi  string // the API path used to get the OCR eligible info
+	OcrServiceRoot string // the root link for the OCR service (for eligible items)
+
 	RewriteFields map[string]string // the fields we explicitly rewrite
 
 	RightsEndpoint string // the endpoint for getting use policy (as part of the enrichment process)
@@ -107,6 +110,9 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.CacheDetailsApi = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_CACHE_DETAILS")
 	cfg.CacheAge = envToInt("VIRGO4_TRACKSYS_ENRICH_CACHE_AGE")
 
+	cfg.PidDetailsApi = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_PID_DETAILS")
+	cfg.OcrServiceRoot = ensureSetAndNonEmpty("VIRGO4_TRACKSYS_ENRICH_OCR_SERVICE_ROOT")
+
 	// maybe configure later
 	cfg.RewriteFields = map[string]string{"uva_availability_f_stored": "Online", "anon_availability_f_stored": "Online"}
 
@@ -121,6 +127,9 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] CacheLoadApi              = [%s]", cfg.CacheLoadApi)
 	log.Printf("[CONFIG] CacheDetailsApi           = [%s]", cfg.CacheDetailsApi)
 	log.Printf("[CONFIG] CacheAge                  = [%d]", cfg.CacheAge)
+
+	log.Printf("[CONFIG] PidDetailsApi             = [%s]", cfg.PidDetailsApi)
+	log.Printf("[CONFIG] OcrServiceRoot            = [%s]", cfg.OcrServiceRoot)
 
 	log.Printf("[CONFIG] RightsEndpoint            = [%s]", cfg.RightsEndpoint)
 	log.Printf("[CONFIG] OembedRoot                = [%s]", cfg.OembedRoot)

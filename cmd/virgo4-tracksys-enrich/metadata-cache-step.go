@@ -20,6 +20,7 @@ type MetadataPart struct {
 	Label       string
 	Pid         string
 	ThumbUrl    string
+	OcrUrl      string
 	PdfUrl      string
 	OembedUrl   string
 }
@@ -152,6 +153,10 @@ func (si *metadataCacheStepImpl) buildMultiPidTemplateData(tracksysDetails Track
 		part.Label = item.CallNumber
 		part.Pid = item.Pid
 		part.ThumbUrl = item.ThumbnailUrl
+		if item.OcrCandidate == true {
+			log.Printf("INFO: PID %s is an OCR candidate", item.Pid)
+			part.OcrUrl = fmt.Sprintf("%s/%s", si.config.OcrServiceRoot, item.Pid)
+		}
 		part.PdfUrl = fmt.Sprintf("%s/%s", tracksysDetails.PdfServiceRoot, item.Pid)
 		part.OembedUrl = fmt.Sprintf("%s/%s", si.config.OembedRoot, item.Pid)
 
