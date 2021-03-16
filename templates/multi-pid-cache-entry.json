@@ -11,7 +11,7 @@
       "ocr": {
         "urls": {
           "delete": "{{$p.OcrUrl}}/delete",
-          "download": "{{$p.OcrUrl}}/download",
+          "download": "{{$p.OcrUrl}}/text",
           "generate": "{{$p.OcrUrl}}",
           "status": "{{$p.OcrUrl}}/status"
         }
