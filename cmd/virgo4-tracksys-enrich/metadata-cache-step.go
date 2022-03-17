@@ -63,7 +63,7 @@ func (si *metadataCacheStepImpl) Process(message *awssqs.Message, data interface
 		return false, data, ErrorTypeAssertion
 	}
 
-	err := si.createMetadataCache(tracksysData, message)
+	key, err := si.createMetadataCache(tracksysData, message)
 	if err != nil {
 		return false, data, err
 	}
@@ -74,14 +74,15 @@ func (si *metadataCacheStepImpl) Process(message *awssqs.Message, data interface
 	metadataUrl := fmt.Sprintf("%s/%s/%s",
 		si.config.DigitalContentCacheRoot,
 		si.config.DigitalContentCacheBucket,
-		tracksysData.SirsiId)
+		key)
+	//log.Printf("METADATA URL: %s", metadataUrl)
 	current = AppendXmlField(current, metadataCacheFieldName, metadataUrl)
 	message.Payload = []byte(current)
 
 	return true, data, nil
 }
 
-func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSirsiItem, message *awssqs.Message) error {
+func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSirsiItem, message *awssqs.Message) (string, error) {
 
 	var err error
 	var metadata string
@@ -95,14 +96,14 @@ func (si *metadataCacheStepImpl) createMetadataCache(tracksysDetails TracksysSir
 	}
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = si.s3proxy.WriteToCache(key, metadata)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return key, nil
 }
 
 func (si *metadataCacheStepImpl) createMultiPidMetadataContent(tracksysDetails TracksysSirsiItem) (string, error) {
@@ -118,7 +119,7 @@ func (si *metadataCacheStepImpl) createMultiPidMetadataContent(tracksysDetails T
 		return "", err
 	}
 	log.Printf("INFO: cache metadata generated for %s", td.Id)
-	//log.Printf( outBuffer.String() )
+	//log.Printf(outBuffer.String())
 
 	return outBuffer.String(), nil
 }
