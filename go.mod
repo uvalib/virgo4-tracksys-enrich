@@ -3,7 +3,7 @@ module github.com/uvalib/virgo4-tracksys-enrich
 go 1.14
 
 require (
-	github.com/aws/aws-sdk-go v1.42.49
+	github.com/aws/aws-sdk-go v1.43.31
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
