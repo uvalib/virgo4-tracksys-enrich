@@ -26,7 +26,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Printf("ERROR: GET failed with error (%s)", err)
+		log.Printf("ERROR: GET %s failed with error (%s)", url, err)
 		return nil, err
 	}
 
@@ -41,7 +41,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 		count++
 		if err != nil {
 			if canRetry(err) == false {
-				log.Printf("ERROR: GET failed with error (%s)", err)
+				log.Printf("ERROR: GET %s failed with error (%s)", url, err)
 				return nil, err
 			}
 
@@ -50,7 +50,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 				return nil, err
 			}
 
-			log.Printf("ERROR: GET failed with error, retrying (%s)", err)
+			log.Printf("ERROR: GET %s failed with error, retrying (%s)", url, err)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)
@@ -64,7 +64,7 @@ func httpGet(url string, client *http.Client) ([]byte, error) {
 				if response.StatusCode == http.StatusNotFound {
 					logLevel = "INFO"
 				}
-				log.Printf("%s: GET failed with status %d", logLevel, response.StatusCode)
+				log.Printf("%s: GET %s failed with status %d", logLevel, url, response.StatusCode)
 
 				body, _ := ioutil.ReadAll(response.Body)
 
