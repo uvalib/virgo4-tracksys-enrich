@@ -18,9 +18,7 @@ type cacheImpl struct {
 	c *cache.Cache
 }
 
-//
 // NewCache - the factory
-//
 func NewCache() Cache {
 
 	impl := &cacheImpl{}
@@ -28,9 +26,7 @@ func NewCache() Cache {
 	return impl
 }
 
-//
 // reload the cache from the list of id's provided
-//
 func (ci *cacheImpl) Reload(ids []string) {
 
 	// clear the cache
@@ -52,9 +48,7 @@ func (ci *cacheImpl) Reload(ids []string) {
 	log.Printf("INFO: loaded cache with %d items", ci.c.ItemCount())
 }
 
-//
 // does the supplied id exist in the cache
-//
 func (ci *cacheImpl) Contains(id string) bool {
 
 	// lookup the id in the cache
