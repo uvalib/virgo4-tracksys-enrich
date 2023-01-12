@@ -94,7 +94,7 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TracksysSirsiI
 	additionalTags.WriteString(ConstructFieldTagSet("source_f_stored", XmlEncodeValues(source_facets)))
 
 	additionalTags.WriteString(ConstructFieldTagSet("marc_display_f_stored", XmlEncodeValues(marc_display_facets)))
-	additionalTags.WriteString(ConstructFieldTagSet("additional_collection_f_stored", XmlEncodeValues(additional_collection_facets)))
+	additionalTags.WriteString(ConstructFieldTagSet("digital_collection_f_stored", XmlEncodeValues(additional_collection_facets)))
 	//additionalTags.WriteString(ConstructFieldTagSet("alternate_id_f_stored", XmlEncodeValues(alternate_ids)))
 	additionalTags.WriteString(ConstructFieldTagSet("individual_call_number_a", XmlEncodeValues(individual_call_number_display)))
 	additionalTags.WriteString(ConstructFieldTagSet("thumbnail_url_a", XmlEncodeValues(thumbnail_url_display)))
@@ -120,9 +120,10 @@ func (si *tracksysEnrichStepImpl) applyEnrichment(tracksysDetails TracksysSirsiI
 	//   additionalTags.WriteString(buf)
 	//}
 
+	log.Printf("DEBUG: enrich %s with [%s]", tracksysDetails.SirsiId, additionalTags.String())
+
 	// tack it on the end of the document
 	docEndTag := "</doc>"
-	//log.Printf( "Enrich with [%s]", additionalTags.String() )
 	additionalTags.WriteString(docEndTag)
 	current := string(message.Payload)
 	current = strings.Replace(current, docEndTag, additionalTags.String(), 1)
