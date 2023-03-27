@@ -6,7 +6,7 @@ version: 0.2
 
 env:
   variables:
-    terraform_version: 1.3.7
+    terraform_version: 1.4.2
 
 phases:
   install:
@@ -24,9 +24,6 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR/terraform-infrastructure/virgo4.lib.virginia.edu/ecs-tasks/staging/virgo4-image-tracksys-enrich
-      - terraform init -no-color
-      - terraform apply -no-color -auto-approve
-      - cd $CODEBUILD_SRC_DIR/terraform-infrastructure/virgo4.lib.virginia.edu/ecs-tasks/staging/virgo4-sirsi-tracksys-enrich
       - terraform init -no-color
       - terraform apply -no-color -auto-approve
 
